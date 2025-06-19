@@ -57,6 +57,8 @@ jobs:
             --jq '.content' | base64 -d > running/${REPO_FILE}
 
           echo "File downloaded successfully to running/${REPO_FILE}"
+          find running
+          echo "this was it"
 
           kosli snapshot paths ${{ env.KOSLI_ENV }} \
-            --paths-file server-paths-file.yml
+            --paths-file server-paths-file.yml --debug
