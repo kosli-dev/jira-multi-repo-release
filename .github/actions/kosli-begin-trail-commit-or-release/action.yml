@@ -45,7 +45,7 @@ runs:
 
     - name: Begin trail
       if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
-      uses: ./.github/actions/kosli-begin-trail
+      uses: kosli-dev/jira-multi-repo-release/.github/actions/kosli-begin-trail@main
       env:
         KOSLI_FLOW: ${{ steps.setoutput.outputs.kosli-flow }}
       with:
