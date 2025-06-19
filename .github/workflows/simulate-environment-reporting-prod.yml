@@ -52,8 +52,7 @@ jobs:
           mkdir -p "running/$(dirname "${REPO_FILE}")"
 
           # Fetch the file
-          gh api repos/kosli-dev/${REPO}/contents/${REPO_FILE_PATH} \
-            --ref ${LATEST_TAG} \
+          gh api "repos/kosli-dev/${REPO}/contents/${REPO_FILE_PATH}?ref=${LATEST_TAG}" \
             --jq '.content' | base64 -d > running/${REPO_FILE}
 
           echo "File downloaded successfully to running/${REPO_FILE}"
