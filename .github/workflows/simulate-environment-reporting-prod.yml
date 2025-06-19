@@ -60,7 +60,6 @@ jobs:
           find running
           echo "this was it"
           
-          kosli fingerprint --artifact-type=dir --debug running/frontend/frontend-content.txt
           kosli fingerprint --artifact-type=dir --debug running/frontend
           kosli fingerprint --artifact-type=dir --debug running
 
