@@ -29,8 +29,7 @@ jobs:
       - name: Setup Kosli cli
         uses: kosli-dev/setup-cli-action@v2
         with:
-          version:
-            ${{ vars.KOSLI_CLI_VERSION }}
+          version: ${{ vars.KOSLI_CLI_VERSION }}
 
       - name: Report snapshot
         env:
