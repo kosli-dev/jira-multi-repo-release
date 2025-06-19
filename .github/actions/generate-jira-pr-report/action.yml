@@ -1,0 +1,66 @@
+name: 'Generate Jira and Pull-request report'
+description: 'Generate a report of all commits, pr-authors, pr-approver and jira reference for a period'
+inputs:
+  # The Following environment variables must be set in your GitHub action
+  # before using this composite
+  # env:
+  #   KOSLI_ORG: kosli-public
+  #   KOSLI_API_TOKEN: "${{ secrets.KOSLI_API_TOKEN }}"  
+  #   KOSLI_CLI_VERSION: 2.11.11  
+  result-dir:
+    description: 'Directory where result is stored'
+    required: true
+  kosli-source-flow:
+    description: 'Kosli flow that tracks source specific attestations that include PR and Jira issues'
+    required: true
+  start-date:
+    description: 'Start date'
+    required: true
+  end-date:
+    description: 'End date'
+    required: true
+
+outputs:
+  result-csv-file:
+    description: "Name of file that contains the result"
+    value: ${{ steps.generate-report.outputs.result-csv-file }}
+  result-csv-path:
+    description: "Path to csv-file that contains the result"
+    value: ${{ steps.generate-report.outputs.result-csv-path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Kosli cli
+      uses: kosli-dev/setup-cli-action@v2
+      with:
+        version:
+          ${{ env.KOSLI_CLI_VERSION }}
+
+    - name: Generate report
+      id: generate-report
+      shell: bash
+      run: |
+        mkdir -p ${{ inputs.result-dir }}
+        ${GITHUB_ACTION_PATH}/scripts/generate-jira-pr-report.bash ${{ inputs.result-dir }} ${{ inputs.kosli-source-flow }} ${{ inputs.start-date }} ${{ inputs.end-date }} 
+        echo "result-csv-file=source.csv" >> $GITHUB_OUTPUT
+        echo "result-csv-path=${{ inputs.result-dir }}/source.csv" >> $GITHUB_OUTPUT
+
+    - name: Format and add CSV to summary
+      shell: bash
+      run: |
+        echo "Reports from and including ${{ inputs.start-date }} up to and not including ${{ inputs.end-date }}" >>  $GITHUB_STEP_SUMMARY
+        # Read the CSV file and convert to Markdown table
+        {
+          # Read the header and format it
+          head -n 1 ${{ steps.generate-report.outputs.result-csv-path }} | sed 's/,/|/g; s/^/|/; s/$/|/'
+        
+          # Add the separator line
+          head -n 1 ${{ steps.generate-report.outputs.result-csv-path }} | sed 's/[^,]*/-/g; s/,/|/g; s/^/|/; s/$/|/'
+        
+          # Read the rest of the file and format it
+          tail -n +2 ${{ steps.generate-report.outputs.result-csv-path }} | sed 's/,/|/g; s/^/|/; s/$/|/'
+        } > formatted_table.md
+        
+        # Add the formatted table to the step summary
+        cat formatted_table.md >> $GITHUB_STEP_SUMMARY

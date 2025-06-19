@@ -1,0 +1,144 @@
+name: Kosli Attest Jira
+
+# Attest jira ticket.
+#   https://docs.kosli.com/client_reference/kosli_attest_jira/
+# The possible fields in the jira-issue-fields comes from the Jira API
+#   https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issues/#api-rest-api-2-issue-issueidorkey-get-request
+
+
+inputs:
+  # The Following environment variables must be set in your GitHub action
+  # before using this composite
+  # env:
+  #   KOSLI_ORG: kosli
+  #   KOSLI_FLOW: your-flow-name
+  #   KOSLI_TRAIL: your-trail-name (often git-commit-sha)
+  #   KOSLI_API_TOKEN: "${{ secrets.KOSLI_API_TOKEN }}"
+  #   KOSLI_CLI_VERSION: 2.11.11
+  jira-base-url:
+    description: "Jira base url for your org (often https://kosli-team.atlassian.net)"
+    required: true
+  jira-username:
+    description: "Jira user-name"
+    required: true
+  jira-api-token:
+    description: "Jira API token"
+    required: true
+  jira-project-key:
+    description: "The key used for Jira issues in this project. Value AAA mean it will search for AAA-nnn when searching for Jira issues"
+    required: false
+  jira-issue-fields:
+    description: "List of fields to include from Jira ticket. See comment at top of file."
+    required: false
+  allow-only-branch-match:
+    description: "Allow that only the original branch name matches the jira issue reference. \
+      WARNING: Git log will not contain Jira-issue reference. You will rely on kosli to go back from commit to Jira-issue."
+    required: false
+    default: "false"
+  report-to-kosli:
+    description: "Report to kosli if jira ticket exists. Normally set this to 'false' on branches"
+    required: false
+    default: "true"
+
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Kosli cli
+      uses: kosli-dev/setup-cli-action@v2
+      with:
+        version:
+          ${{ env.KOSLI_CLI_VERSION }}
+
+    - name: Attest Jira ticket
+      shell: bash
+      run: |
+        JIRA_ISSUE_ARG=""
+        if [ -n "${{ inputs.jira-issue-fields }}" ]; then
+          JIRA_ISSUE_ARG="--jira-issue-fields ${{ inputs.jira-issue-fields }}"
+        fi
+
+        JIRA_PROJECT_KEY_ARG=""
+        if [ -n "${{ inputs.jira-project-key }}" ]; then
+          JIRA_PROJECT_KEY_ARG="--jira-project-key ${{ inputs.jira-project-key }}"
+        fi
+        
+        IGNORE_BRANCH_MATCH_ARG=""
+        JIRA_SECONDARY_SOURCE_ARG=""
+        if [ "${{ inputs.allow-only-branch-match }}" == "true" ]; then
+          # If this is on a branch we automatically search the branch name for reference,
+          # but on main branch it is more trickey.
+
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            # The message format in the git log depends on the merging strategy:
+            #   Squashed PRs: Title (#123)
+            #   Merged PRs: Merge pull request #123 from kosli-dev/OPS-69-other-branch
+            # For merged PRs the message can also vary if it is the same repo or a fork, and a branch name can
+            # contain one or more slashes /
+            # So the strategy is to get the PR number in two different ways and then
+            # get PR info from github and extract the head.ref
+
+            export GH_TOKEN=${{ github.token }}
+            PR_NUMBER=$(git log -1 --pretty=%B | grep "Merge pull request #" | sed "s/Merge pull request #//;s/ .*//" || true)
+            if [ -z "$PR_NUMBER" ]; then
+              PR_NUMBER=$(git log -1 --pretty=%B | grep "(#" | sed "s/^.*(#//;s/).*//" || true)
+            fi
+            if [ -z "$PR_NUMBER" ]; then
+              echo "ERROR: Running on main branch but failed to get a Pull request number from the git commit message" >&2
+              echo "Will continue execution since Jira issue reference might be in the commit message" >&2
+              echo "Commit message:" >&2
+              git log -1 --pretty=%B >&2
+              echo "---end commit message---" >&2
+            else
+              echo "Found PR number: ${PR_NUMBER}" >&2
+              ORIG_BRANCH=$(gh api repos/${{ github.repository }}/pulls/${PR_NUMBER} --jq .head.ref)
+              JIRA_SECONDARY_SOURCE_ARG="--jira-secondary-source ${ORIG_BRANCH}"
+              echo "Found original branch: ${ORIG_BRANCH}" >&2
+            fi
+          fi
+        else
+          IGNORE_BRANCH_MATCH_ARG="--ignore-branch-match"
+        fi
+
+        if [ "${{ inputs.report-to-kosli }}" == "false" ]; then
+          # Currently the kosli attest jira command is missing a feature to not report the jira ticket,
+          # so we run the command in dry-run mode and then look at the result.
+          kosli attest jira \
+            --name work-reference \
+            --jira-base-url ${{ inputs.jira-base-url }} \
+            --jira-username ${{ inputs.jira-username }} \
+            --jira-api-token ${{ inputs.jira-api-token }} \
+            ${JIRA_PROJECT_KEY_ARG} \
+            ${IGNORE_BRANCH_MATCH_ARG} \
+            ${JIRA_SECONDARY_SOURCE_ARG} \
+            ${JIRA_ISSUE_ARG} \
+            --assert --dry-run &> /tmp/kosli-attest-result.txt
+      
+          # If we find a Jira issue reference the output will be like this:
+          #   "jira_results": [
+          #       {
+          #           "issue_id": "OPS-68",
+          #           "issue_url": "https://kosli-team.atlassian.net/browse/OPS-68",
+          #           "issue_exists": true
+          #       }
+          #   ]
+          if grep -q '"issue_id":' /tmp/kosli-attest-result.txt; then
+            echo "Found jira issues:"
+            grep '"issue_id":' /tmp/kosli-attest-result.txt
+          else
+            echo "ERROR: No Jira issues found" >&2
+            cat /tmp/kosli-attest-result.txt >&2
+            exit 9
+          fi
+        else
+          kosli attest jira \
+            --name work-reference \
+            --jira-base-url ${{ inputs.jira-base-url }} \
+            --jira-username ${{ inputs.jira-username }} \
+            --jira-api-token ${{ inputs.jira-api-token }} \
+            ${JIRA_PROJECT_KEY_ARG} \
+            ${IGNORE_BRANCH_MATCH_ARG} \
+            ${JIRA_SECONDARY_SOURCE_ARG} \
+            ${JIRA_ISSUE_ARG} \
+            --assert
+        fi

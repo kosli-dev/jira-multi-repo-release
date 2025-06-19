@@ -1,0 +1,35 @@
+name: 'Assert Artifacts'
+description: 'Assert multiple artifacts using Kosli CLI'
+inputs:
+  # The Following environment variables must be set in your GitHub action
+  # before using this composite
+  # env:
+  #   KOSLI_ORG: kosli
+  #   KOSLI_API_TOKEN: "${{ secrets.KOSLI_API_TOKEN }}"  
+  #   KOSLI_CLI_VERSION: 2.11.6  
+  kosli-environment:
+    description: 'Kosli environment the artifacts shall be deployed to'
+    required: true
+  fingerprints:
+    description: 'Comma-separated list of fingerprints to assert'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Kosli cli
+      uses: kosli-dev/setup-cli-action@v2
+      with:
+        version:
+          ${{ env.KOSLI_CLI_VERSION }}
+
+    - name: Assert Artifacts
+      shell: bash
+      run: |
+        set -x
+        EXIT_CODE=0
+        IFS=',' read -ra FINGERPRINTS <<< "${{ inputs.fingerprints }}"
+        for fingerprint in "${FINGERPRINTS[@]}"; do
+          kosli assert artifact --fingerprint "$fingerprint" --environment ${{ inputs.kosli-environment }} || EXIT_CODE=1
+        done
+        exit ${EXIT_CODE}

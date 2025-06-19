@@ -1,0 +1,63 @@
+name: 'Generate Periodic Reports'
+
+description: 'Generates a selection of periodic reports.
+ Currently it only has Jira and PR report'
+
+inputs:
+  start-date:
+    description: 'Start date for the report (optional)'
+    required: false
+  end-date:
+    description: 'End date for the report (optional)'
+    required: false
+  kosli-source-flow:
+    description: 'Kosli source flow name. Used for Jira and PR report'
+    required: true
+
+outputs:
+  result-jira-pr-csv-file:
+    description: 'Name of the jira and PR result CSV file'
+    value: ${{ steps.jira-pr-report.outputs.result-csv-file }}
+  result-jira-pr-artifact-upload-name:
+    description: 'Name of the artifact used in upload-artifact action'
+    value: source-report-${{ github.run_id }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Wait for Random Delay
+      if: ${{ github.event_name == 'schedule' }}
+      shell: bash
+      run: |
+        RANDOM_DELAY=$((RANDOM % 3600)) 
+        sleep $RANDOM_DELAY
+
+    - name: Calculate Dates
+      id: calculate-dates
+      shell: bash
+      run: |
+        if [ "${{ github.event_name }}" == "schedule" ]; then
+          START_DATE=$(date -d "$(date +'%Y-%m-01') -1 month" +'%Y-%m-01')
+          END_DATE=$(date +'%Y-%m-01')
+        else
+          START_DATE="${{ inputs.start-date }}"
+          END_DATE="${{ inputs.end-date }}"
+        fi
+        echo "start-date=$START_DATE" >> $GITHUB_ENV
+        echo "end-date=$END_DATE" >> $GITHUB_ENV
+
+    - name: Generate Jira PR report
+      id: jira-pr-report
+      uses: ./.github/actions/generate-jira-pr-report
+      with:
+        result-dir: /tmp/audit-reports
+        kosli-source-flow: ${{ inputs.kosli-source-flow }}
+        start-date: ${{ env.start-date }}
+        end-date: ${{ env.end-date }}
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: source-report-${{ github.run_id }}
+        path: ${{ steps.jira-pr-report.outputs.result-csv-path }}
+        overwrite: true
+        
