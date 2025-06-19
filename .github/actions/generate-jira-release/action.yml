@@ -1,0 +1,176 @@
+name: 'Generate Jira Release'
+description: 'Create or update a Jira release candidate with Kosli integration'
+
+inputs:
+  kosli-org:
+    description: 'Kosli organization'
+    required: true
+  kosli-flow:
+    description: 'Kosli flow'
+    required: true
+  kosli-template-file:
+    description: 'Kosli template file'
+    required: true
+  kosli-env-staging:
+    description: 'Kosli staging environment'
+    required: true
+  kosli-env-prod:
+    description: 'Kosli production environment'
+    required: true
+  kosli-flow-source:
+    description: 'Kosli flow source'
+    required: true
+  kosli-cli-version:
+    description: 'Kosli CLI version'
+    required: true
+  kosli-api-token:
+    description: 'Kosli API token'
+    required: true
+  jira-base-url:
+    description: 'Jira base URL'
+    required: true
+  jira-project-id:
+    description: 'Jira project ID'
+    required: true
+  jira-project-key:
+    description: 'Jira project key'
+    required: true
+  jira-username:
+    description: 'Jira username'
+    required: true
+  jira-api-token:
+    description: 'Jira API token'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Kosli cli
+      uses: kosli-dev/setup-cli-action@v2
+      with:
+        version: ${{ inputs.kosli-cli-version }}
+
+    - name: Create or get Jira release candidate
+      id: release-candidate
+      shell: bash
+      env:
+        JIRA_BASE_URL: ${{ inputs.jira-base-url }}
+        JIRA_USERNAME: ${{ inputs.jira-username }}
+        JIRA_API_TOKEN: ${{ inputs.jira-api-token }}
+      run: |
+        echo "STEP: Create or get Jira release candidate"
+        source scripts/lib-jira.sh
+
+        CURRENT_REL_JSON=$(get_current_release_candidate ${{ inputs.jira-project-id }})
+        REL_VALUES_JSON=$(echo "${CURRENT_REL_JSON}" | jq .values)
+        if [ "${REL_VALUES_JSON}" == "[]" ]; then
+          echo "No release candidate exist"
+          echo "release-was-created=true" >> $GITHUB_OUTPUT
+        
+          # Create the release and get the release ID
+          TIMESTAMP=$(date -u "+%Y-%m-%d-%H-%M-%S")
+          CREATE_RESULT_JSON=$(create_release ${{ inputs.jira-project-id }} ${TIMESTAMP})
+          RELEASE_ID=$(echo "${CREATE_RESULT_JSON}" | jq .id)
+
+          PROJECT_KEY=$(echo "${{ inputs.jira-project-key }}" | cut -d',' -f1)
+          REL_LINK="${{ inputs.jira-base-url }}/projects/${PROJECT_KEY}/versions/${RELEASE_ID}"
+          echo "REL_LINK=${REL_LINK}" >> $GITHUB_ENV
+          echo "Created Jira release_id: ${RELEASE_ID}" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "Release candidate exist"
+          RELEASE_ID=$(echo "${REL_VALUES_JSON}" |  jq -r '.[0].id')
+          echo "Updated Jira release_id: ${RELEASE_ID}" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "RELEASE_ID=${RELEASE_ID}" >> $GITHUB_ENV
+
+    - name: Begin trail
+      if: ${{ steps.release-candidate.outputs.release-was-created == 'true' }}
+      shell: bash
+      env:
+        KOSLI_ORG: ${{ inputs.kosli-org }}
+        KOSLI_FLOW: ${{ inputs.kosli-flow }}
+        KOSLI_API_TOKEN: ${{ inputs.kosli-api-token }}
+      run: |
+        echo "STEP: Begin trail with ORG: '${KOSLI_ORG}' FLOW: '${KOSLI_FLOW}' TRAIL: '${{ env.RELEASE_ID }}' TEMPLATE-FILE: '${{ inputs.kosli-template-file }}'"
+        kosli begin trail ${{ env.RELEASE_ID }} --template-file ${{ inputs.kosli-template-file }} --external-url JiraRelease=${{ env.REL_LINK }}
+
+
+    - name: Add trail to jira release
+      if: ${{ steps.release-candidate.outputs.release-was-created == 'true' }}
+      shell: bash
+      env:
+        JIRA_BASE_URL: ${{ inputs.jira-base-url }}
+        JIRA_USERNAME: ${{ inputs.jira-username }}
+        JIRA_API_TOKEN: ${{ inputs.jira-api-token }}
+      run: |
+        echo "STEP: Add trail to jira release"
+        source scripts/lib-jira.sh
+        kosli_trail_link="https://app.kosli.com/${{ inputs.kosli-org }}/flows/${{ inputs.kosli-flow }}/trails/${{ env.RELEASE_ID }}"
+        add_trail_link_to_release ${{ env.RELEASE_ID }} ${kosli_trail_link}
+
+    - name: Report current prod SW
+      if: ${{ steps.release-candidate.outputs.release-was-created == 'true' }}
+      shell: bash
+      env:
+        KOSLI_ORG: ${{ inputs.kosli-org }}
+        KOSLI_FLOW: ${{ inputs.kosli-flow }}
+        KOSLI_API_TOKEN: ${{ inputs.kosli-api-token }}
+      run: |
+        echo "STEP: Report current prod SW"
+        source scripts/lib-kosli.sh
+        get_current_running_env_json ${{ inputs.kosli-env-prod }} > /tmp/prod-env.json
+        create_running_sw_short_list_json /tmp/prod-env.json > /tmp/prod-sw.json
+
+        kosli attest custom \
+          --type=running-sw \
+          --name prod-software \
+          --trail ${{ env.RELEASE_ID }} \
+          --attestation-data /tmp/prod-sw.json
+        echo "Current prod SW:" >> $GITHUB_STEP_SUMMARY
+        cat /tmp/prod-sw.json | jq >> $GITHUB_STEP_SUMMARY
+
+    - name: Report current staging SW
+      shell: bash
+      env:
+        KOSLI_ORG: ${{ inputs.kosli-org }}
+        KOSLI_FLOW: ${{ inputs.kosli-flow }}
+        KOSLI_API_TOKEN: ${{ inputs.kosli-api-token }}
+      run: |
+        echo "STEP: Report current staging SW"
+        source scripts/lib-kosli.sh
+        get_current_running_env_json ${{ inputs.kosli-env-staging }} > /tmp/staging-env.json
+        create_running_sw_short_list_json /tmp/staging-env.json > /tmp/staging-sw.json
+
+        kosli attest custom \
+          --type=running-sw \
+          --name staging-software \
+          --trail ${{ env.RELEASE_ID }} \
+          --attestation-data /tmp/staging-sw.json
+        echo "Current staging SW:" >> $GITHUB_STEP_SUMMARY
+        cat /tmp/staging-sw.json | jq >> $GITHUB_STEP_SUMMARY
+
+    - name: Add Jira issues to release
+      shell: bash
+      env:
+        KOSLI_ORG: ${{ inputs.kosli-org }}
+        KOSLI_FLOW: ${{ inputs.kosli-flow }}
+        KOSLI_API_TOKEN: ${{ inputs.kosli-api-token }}
+        JIRA_BASE_URL: ${{ inputs.jira-base-url }}
+        JIRA_USERNAME: ${{ inputs.jira-username }}
+        JIRA_API_TOKEN: ${{ inputs.jira-api-token }}
+      run: |
+        echo "STEP: Add Jira issues to release"
+        source scripts/lib-jira.sh
+        source scripts/lib-kosli.sh
+
+        JIRA_KEYS_IN_REL=($(get_issue_keys_in_release ${{ env.RELEASE_ID }}))
+        JIRA_KEYS_IN_KOSLI=($(get_issue_keys_between_staging_and_prod ${{ inputs.kosli-env-staging }} ${{ inputs.kosli-env-prod }} ${{ inputs.kosli-flow-source }}))
+
+        # Add all new jira issues between prod and staging
+        echo "Adding Jira issues:"  >> $GITHUB_STEP_SUMMARY
+        for JIRA_KEY in ${JIRA_KEYS_IN_KOSLI[@]}; do
+          if [[ ! " ${JIRA_KEYS_IN_REL[@]} " =~ " ${JIRA_KEY} " ]]; then
+            add_issue_to_release ${JIRA_KEY} ${{ env.RELEASE_ID }}
+            echo ${JIRA_KEY} >> $GITHUB_STEP_SUMMARY
+          fi
+        done
