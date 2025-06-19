@@ -1,0 +1,135 @@
+name: Setup kosli
+
+on:
+  workflow_dispatch:
+
+env:
+  # kosli commands picks up org, flow, trail and api-token from these environment variables
+  KOSLI_ORG: "${{ vars.KOSLI_ORG }}"
+  KOSLI_API_TOKEN: "${{ secrets.KOSLI_PUBLIC_API_TOKEN }}"
+  KOSLI_CLI_VERSION: "${{ vars.KOSLI_CLI_VERSION }}"
+  KOSLI_ENV_PROD: "jira-multi-repo-prod"
+
+jobs:
+  create-flows:
+    name: Create kosli flows and environments
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Kosli cli
+        uses: kosli-dev/setup-cli-action@v2
+        with:
+          version:
+            ${{ vars.KOSLI_CLI_VERSION }}
+
+      ### flows ###
+#      - name: Create jira-example-source flow
+#        run:
+#          kosli create flow jira-example-source
+#            --description "Track jira example attestations for source"
+#            --template-file kosli-flow-templates/source-template.yml
+#
+#      - name: Create jira-example-backend flow
+#        run:
+#          kosli create flow jira-example-backend
+#            --description "Track jira example attestations for backend"
+#            --template-file kosli-flow-templates/backend-template.yml
+#
+#      - name: Create jira-example-frontend flow
+#        run:
+#          kosli create flow jira-example-frontend
+#            --description "Track jira example attestations for frontend"
+#            --template-file kosli-flow-templates/frontend-template.yml
+#
+#      - name: Create jira-example-release flow
+#        run:
+#          kosli create flow jira-example-release
+#            --description "Track jira example attestations for releases"
+#            --template-file kosli-flow-templates/release-template.yml
+
+      ### Custom attestation types ###
+#      - name: Create approval-jira attestation type
+#        run:
+#          kosli create attestation-type approval-jira
+#              --description "Approval from Jira. Must have at least 1 approver and all approvers must have APPROVED it"
+#              --schema custom-attestation-types/approval-jira-schema.json
+#              --jq '(.approvers | length) > 0'
+#              --jq '[.approvers[].status == "APPROVED"] | all'
+#
+#      - name: Create running-sw attestation type
+#        run:
+#          kosli create attestation-type running-sw
+#              --description "List of running software in an environment"
+#              --schema custom-attestation-types/running-sw-schema.json
+
+      ### environments ###
+#      - name: Create dev env
+#        run:
+#          kosli create environment ${{ env.KOSLI_ENV_DEV }}
+#            --description "A simulated development environment"
+#            --type server
+#
+#      - name: Create staging env
+#        run:
+#          kosli create environment ${{ env.KOSLI_ENV_STAGING }}
+#            --description "A simulated staging environment"
+#            --type server
+
+      - name: Create prod env
+        run:
+          kosli create environment ${{ env.KOSLI_ENV_PROD }}
+            --description "A simulated production environment for jira multi repo"
+            --type server
+
+      ### create policies ###
+#      - name: Create has provenance policy
+#        run:
+#          kosli create policy has-provenance policies/has-provenance.yml
+#            --description "Artifacts has provenance"
+#            --type env
+#
+#      - name: Create trail compliant policy
+#        run:
+#          kosli create policy trail-compliant policies/trail-compliant.yml
+#            --description "Artifacts comes from trails that are compliant"
+#            --type env
+#
+#      - name: Create has release approval policy
+#        run:
+#          kosli create policy has-release-approval policies/has-release-approval.yml
+#            --description "Artifacts has been approved for release"
+#            --type env
+
+
+      ### attache policies ###
+      - name: Attach has provenance policy to all envs
+        run:
+          kosli attach-policy has-provenance
+            --environment  ${{ env.KOSLI_ENV_PROD }}
+
+      - name: Attach trail compliant policy to all envs
+        run:
+          kosli attach-policy trail-compliant
+            --environment  ${{ env.KOSLI_ENV_PROD }}
+
+      - name: Attach has release approval to prod
+        run:
+          kosli attach-policy has-release-approval
+            --environment  ${{ env.KOSLI_ENV_PROD }}
+
+
+
+      ### detach old policies
+#      - name: Detach jira-example-dev-staging-policy
+#        run:
+#          kosli detach-policy jira-example-dev-staging-policy
+#            --environment  ${{ env.KOSLI_ENV_DEV }}
+#            --environment  ${{ env.KOSLI_ENV_STAGING }}
+#
+#      - name: Detach jira-example-prod-policy
+#        run:
+#          kosli detach-policy jira-example-prod-policy
+#            --environment  ${{ env.KOSLI_ENV_PROD }}
