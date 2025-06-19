@@ -51,15 +51,16 @@ jobs:
           # Create directory structure for the destination file
           mkdir -p "running/$(dirname "${REPO_FILE}")"
 
-          # Fetch the file
-          gh api repos/kosli-dev/${REPO}/contents/${REPO_FILE_PATH} \
-            --ref ${LATEST_TAG} \
+          # Fetch the file - include ref as query parameter
+          gh api "repos/kosli-dev/${REPO}/contents/${REPO_FILE_PATH}?ref=${LATEST_TAG}" \
             --jq '.content' | base64 -d > running/${REPO_FILE}
 
           echo "File downloaded successfully to running/${REPO_FILE}"
           find running
           echo "this was it"
-          
+
+          cat running/frontend/frontend-content.txt
+
           kosli fingerprint --artifact-type=dir --debug running/frontend
           kosli fingerprint --artifact-type=dir --debug running
 
