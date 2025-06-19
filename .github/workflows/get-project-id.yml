@@ -23,5 +23,6 @@ jobs:
       - name: get project id
         run: |
           source .github/actions/common/lib-jira.sh
+          set -x
           ID=$(get_project_id ${{ inputs.project-key }})
           echo " ${{ inputs.project-key }} : $ID" >> $GITHUB_STEP_SUMMARY
