@@ -57,11 +57,6 @@ jobs:
             --jq '.content' | base64 -d > running/${REPO_FILE}
 
           echo "File downloaded successfully to running/${REPO_FILE}"
-#
-##          git checkout running-prod-frontend
-##          cp -r app/frontend running/
-##          git checkout running-prod-backend
-##          cp -r apps/backend running/
-#
-#          kosli snapshot paths ${{ env.KOSLI_ENV }} \
-#            --paths-file server-paths-file.yml
+
+          kosli snapshot paths ${{ env.KOSLI_ENV }} \
+            --paths-file server-paths-file.yml
