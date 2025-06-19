@@ -42,6 +42,12 @@ function get_oldest_commit_sha
     echo "$envJson" | jq -r '[.[] | .flows[]] | sort_by(.git_commit_info.timestamp) | .[0].git_commit_info.sha1'
 }
 
+function get_commits_between_tags
+{
+    local -r oldTag=$1; shift
+    local -r newTag=$1; shift
+    git log --format="%H" --reverse ${oldTag}..${newTag}
+}
 
 function get_commits_between_staging_and_prod
 {
@@ -95,6 +101,18 @@ function get_issue_keys_between_staging_and_prod
 
     commits=$(get_commits_between_staging_and_prod ${stagingEnvName} ${prodEnvName})
     debug_log "Commits between staging and prod:\n${commits}"
+    issueKeys=$(get_all_jira_issue_keys_for_commits ${flowName} "${commits}")
+    echo ${issueKeys} | tr ' ' '\n' | sort -u | tr '\n' ' '
+}
+
+function get_issue_keys_between_commits
+{
+    local -r oldCommit=$1; shift
+    local -r newCommit=$1; shift
+    local -r flowName=$1; shift
+
+    commits=$(get_commits_between_tags ${oldCommit} ${newCommit})
+    debug_log "Commits between ${oldCommit} ${newCommit}:\n${commits}"
     issueKeys=$(get_all_jira_issue_keys_for_commits ${flowName} "${commits}")
     echo ${issueKeys} | tr ' ' '\n' | sort -u | tr '\n' ' '
 }

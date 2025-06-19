@@ -51,33 +51,13 @@ jobs:
 #            --template-file kosli-flow-templates/release-template.yml
 
       ### Custom attestation types ###
-#      - name: Create approval-jira attestation type
-#        run:
-#          kosli create attestation-type approval-jira
-#              --description "Approval from Jira. Must have at least 1 approver and all approvers must have APPROVED it"
-#              --schema custom-attestation-types/approval-jira-schema.json
-#              --jq '(.approvers | length) > 0'
-#              --jq '[.approvers[].status == "APPROVED"] | all'
-#
-#      - name: Create running-sw attestation type
-#        run:
-#          kosli create attestation-type running-sw
-#              --description "List of running software in an environment"
-#              --schema custom-attestation-types/running-sw-schema.json
+      - name: Create running-sw attestation type
+        run:
+          kosli create attestation-type jira-issue-list
+              --description "List of Jira issues"
+              --schema custom-attestation-types/jira-issue-list-schema.json
 
       ### environments ###
-#      - name: Create dev env
-#        run:
-#          kosli create environment ${{ env.KOSLI_ENV_DEV }}
-#            --description "A simulated development environment"
-#            --type server
-#
-#      - name: Create staging env
-#        run:
-#          kosli create environment ${{ env.KOSLI_ENV_STAGING }}
-#            --description "A simulated staging environment"
-#            --type server
-
       - name: Create prod env
         run:
           kosli create environment ${{ env.KOSLI_ENV_PROD }}
