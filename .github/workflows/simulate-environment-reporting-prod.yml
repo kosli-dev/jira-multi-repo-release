@@ -1,0 +1,68 @@
+name: Report prod snapshot
+
+# On a normal setup the backend and frontend built in the two build jobs would
+# deploy the two artifacts to a server, and we would have set up reporting
+# of the environment to kosli. In this example we do not have a server so
+# we just simulate that we have deployed to prod
+
+on:
+  schedule:
+    - cron: '55 * * * *'  # Runs 5 minutes before the start of every hour
+  workflow_dispatch:
+
+env:
+  # kosli commands picks up org, env, trail and api-token from these environment variables
+  KOSLI_ORG: "${{ vars.KOSLI_ORG }}"
+  KOSLI_ENV: "jira-multi-repo-prod"
+  KOSLI_API_TOKEN: "${{ secrets.KOSLI_PUBLIC_API_TOKEN }}"
+  KOSLI_CLI_VERSION: "${{ vars.KOSLI_CLI_VERSION }}"
+
+jobs:
+  report-snapshot:
+    name: Report prod snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Kosli cli
+        uses: kosli-dev/setup-cli-action@v2
+        with:
+          version:
+            ${{ vars.KOSLI_CLI_VERSION }}
+
+      - name: Report snapshot
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p running
+          REPO=jira-multi-repo-front
+          REPO_FILE_PATH=app/frontend/frontend-content.txt
+
+          # Extract destination path by removing 'app/' prefix
+          REPO_FILE=${REPO_FILE_PATH#app/}
+
+          LATEST_TAG=$(gh api repos/kosli-dev/${REPO}/tags \
+            --jq '[.[] | select(.name | test("^release-[0-9]+\\.[0-9]+\\.[0-9]+$"))] | .[0].name')
+
+          echo "Latest release tag: $LATEST_TAG"
+          echo "Destination file: running/${REPO_FILE}"
+
+          # Create directory structure for the destination file
+          mkdir -p "running/$(dirname "${REPO_FILE}")"
+
+          # Fetch the file
+          gh api repos/kosli-dev/${REPO}/contents/${REPO_FILE_PATH} \
+            --ref ${LATEST_TAG} \
+            --jq '.content' | base64 -d > running/${REPO_FILE}
+
+          echo "File downloaded successfully to running/${REPO_FILE}"
+
+#          git checkout running-prod-frontend
+#          cp -r app/frontend running/
+#          git checkout running-prod-backend
+#          cp -r apps/backend running/
+          
+          kosli snapshot paths ${{ env.KOSLI_ENV }} \
+            --paths-file server-paths-file.yml
