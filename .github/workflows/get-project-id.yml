@@ -1,0 +1,27 @@
+name: Get project Id
+
+on:
+  workflow_dispatch:
+    inputs:
+      project-key:
+        description: 'Project key. Something like: OPS'
+        required: true
+        type: string
+
+env:
+  JIRA_BASE_URL: "${{ vars.JIRA_BASE_URL }}"
+  JIRA_USERNAME: ${{ vars.JIRA_USERNAME }}
+  JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
+jobs:
+  get-project-id:
+    name: Get project id
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: get project id
+        run: |
+          source .github/actions/common/lib-jira.sh
+          ID=$(get_project_id ${{ inputs.project-key }})
+          echo " ${{ inputs.project-key }} : $ID" >> $GITHUB_STEP_SUMMARY
