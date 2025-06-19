@@ -59,6 +59,10 @@ jobs:
           echo "File downloaded successfully to running/${REPO_FILE}"
           find running
           echo "this was it"
+          
+          kosli fingerprint --artifact-type=dir --debug running/frontend/frontend-content.txt
+          kosli fingerprint --artifact-type=dir --debug running/frontend
+          kosli fingerprint --artifact-type=dir --debug running
 
           kosli snapshot paths ${{ env.KOSLI_ENV }} \
             --paths-file server-paths-file.yml --debug
