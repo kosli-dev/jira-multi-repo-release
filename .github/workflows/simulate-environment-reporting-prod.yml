@@ -31,37 +31,37 @@ jobs:
         with:
           version: ${{ vars.KOSLI_CLI_VERSION }}
 
-      - name: Report snapshot
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          mkdir -p running
-          REPO=jira-multi-repo-front
-          REPO_FILE_PATH=app/frontend/frontend-content.txt
-
-          # Extract destination path by removing 'app/' prefix
-          REPO_FILE=${REPO_FILE_PATH#app/}
-
-          LATEST_TAG=$(gh api repos/kosli-dev/${REPO}/tags \
-            --jq '[.[] | select(.name | test("^release-[0-9]+\\.[0-9]+\\.[0-9]+$"))] | .[0].name')
-
-          echo "Latest release tag: $LATEST_TAG"
-          echo "Destination file: running/${REPO_FILE}"
-
-          # Create directory structure for the destination file
-          mkdir -p "running/$(dirname "${REPO_FILE}")"
-
-          # Fetch the file
-          gh api repos/kosli-dev/${REPO}/contents/${REPO_FILE_PATH} \
-            --ref ${LATEST_TAG} \
-            --jq '.content' | base64 -d > running/${REPO_FILE}
-
-          echo "File downloaded successfully to running/${REPO_FILE}"
-
-#          git checkout running-prod-frontend
-#          cp -r app/frontend running/
-#          git checkout running-prod-backend
-#          cp -r apps/backend running/
-          
-          kosli snapshot paths ${{ env.KOSLI_ENV }} \
-            --paths-file server-paths-file.yml
+#      - name: Report snapshot
+#        env:
+#          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        run: |
+#          mkdir -p running
+#          REPO=jira-multi-repo-front
+#          REPO_FILE_PATH=app/frontend/frontend-content.txt
+#
+#          # Extract destination path by removing 'app/' prefix
+#          REPO_FILE=${REPO_FILE_PATH#app/}
+#
+#          LATEST_TAG=$(gh api repos/kosli-dev/${REPO}/tags \
+#            --jq '[.[] | select(.name | test("^release-[0-9]+\\.[0-9]+\\.[0-9]+$"))] | .[0].name')
+#
+#          echo "Latest release tag: $LATEST_TAG"
+#          echo "Destination file: running/${REPO_FILE}"
+#
+#          # Create directory structure for the destination file
+#          mkdir -p "running/$(dirname "${REPO_FILE}")"
+#
+#          # Fetch the file
+#          gh api repos/kosli-dev/${REPO}/contents/${REPO_FILE_PATH} \
+#            --ref ${LATEST_TAG} \
+#            --jq '.content' | base64 -d > running/${REPO_FILE}
+#
+#          echo "File downloaded successfully to running/${REPO_FILE}"
+#
+##          git checkout running-prod-frontend
+##          cp -r app/frontend running/
+##          git checkout running-prod-backend
+##          cp -r apps/backend running/
+#
+#          kosli snapshot paths ${{ env.KOSLI_ENV }} \
+#            --paths-file server-paths-file.yml
