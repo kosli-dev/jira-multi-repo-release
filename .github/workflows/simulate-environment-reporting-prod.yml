@@ -29,8 +29,7 @@ jobs:
       - name: Setup Kosli cli
         uses: kosli-dev/setup-cli-action@v2
         with:
-          version:
-            ${{ vars.KOSLI_CLI_VERSION }}
+          version: ${{ vars.KOSLI_CLI_VERSION }}
 
       - name: Report snapshot
         env:
@@ -59,10 +58,5 @@ jobs:
 
           echo "File downloaded successfully to running/${REPO_FILE}"
 
-#          git checkout running-prod-frontend
-#          cp -r app/frontend running/
-#          git checkout running-prod-backend
-#          cp -r apps/backend running/
-          
           kosli snapshot paths ${{ env.KOSLI_ENV }} \
             --paths-file server-paths-file.yml
