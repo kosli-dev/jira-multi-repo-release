@@ -102,7 +102,7 @@ function get_issue_keys_between_staging_and_prod
     commits=$(get_commits_between_staging_and_prod ${stagingEnvName} ${prodEnvName})
     debug_log "Commits between staging and prod:\n${commits}"
     issueKeys=$(get_all_jira_issue_keys_for_commits ${flowName} "${commits}")
-    echo ${issueKeys} | tr ' ' '\n' | sort -u | tr '\n' ' '
+    echo ${issueKeys} | tr ' ' '\n' | sort -uV | tr '\n' ' '
 }
 
 function get_issue_keys_between_commits
@@ -114,5 +114,5 @@ function get_issue_keys_between_commits
     commits=$(get_commits_between_tags ${oldCommit} ${newCommit})
     debug_log "Commits between ${oldCommit} ${newCommit}:\n${commits}"
     issueKeys=$(get_all_jira_issue_keys_for_commits ${flowName} "${commits}")
-    echo ${issueKeys} | tr ' ' '\n' | sort -u | tr '\n' ' '
+    echo ${issueKeys} | tr ' ' '\n' | sort -uV | tr '\n' ' '
 }
