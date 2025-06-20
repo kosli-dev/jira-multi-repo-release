@@ -1,7 +1,7 @@
 version: 1
 artifacts:
-#  backend:
-#    path: running/backend
+  backend:
+    path: running/backend
   frontend:
     path: running/frontend
 #  some-unknown-sw:

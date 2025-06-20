@@ -1,0 +1,9 @@
+version: 1
+trail:
+    attestations:
+        - name: prod-software
+          type: custom:running-sw
+#        - name: new-software
+#          type: custom:running-sw
+        - name: release-approval
+          type: custom:approval-jira

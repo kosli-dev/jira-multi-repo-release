@@ -1,0 +1,91 @@
+# Example workflow using the jira-release action
+name: Generate Jira Release
+
+on:
+  workflow_dispatch:
+
+env:
+  # kosli commands picks up org, flow, trail and api-token from these environment variables
+  KOSLI_ORG: "${{ vars.KOSLI_ORG }}"
+  KOSLI_FLOW: "jira-multi-repo-release"
+  KOSLI_TRAIL: ${{ github.sha }}
+  KOSLI_ENV_PROD: "jira-multi-repo-prod"
+  KOSLI_API_TOKEN: "${{ secrets.KOSLI_PUBLIC_API_TOKEN }}"
+  KOSLI_CLI_VERSION: "${{ vars.KOSLI_CLI_VERSION }}"
+  KOSLI_TEMPLATE_FILE: "kosli-flow-templates/release-template.yml"
+  JIRA_BASE_URL: "${{ vars.KOSLI_JIRA_BASE_URL }}"
+  JIRA_USERNAME: ${{ vars.KOSLI_JIRA_USERNAME }}
+  JIRA_API_TOKEN: ${{ secrets.KOSLI_JIRA_API_TOKEN }}
+  JIRA_PROJECT_KEY: ${{ vars.JIRA_PROJECT_KEY }}
+  JIRA_PROJECT_ID: ${{ vars.JIRA_PROJECT_ID }}
+
+jobs:
+  generate-jira-release:
+    name: Create or update Jira release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create or get Jira release candidate
+        id: release-candidate
+        run: |
+          echo "STEP: Create or get Jira release candidate"
+          source .github/actions/common/lib-jira.sh
+          
+          CURRENT_REL_JSON=$(get_current_release_candidate ${JIRA_PROJECT_ID})
+          REL_VALUES_JSON=$(echo "${CURRENT_REL_JSON}" | jq .values)
+          if [ "${REL_VALUES_JSON}" == "[]" ]; then
+            echo "No release candidate exist"
+            echo "release-was-created=true" >> $GITHUB_OUTPUT
+          
+            # Create the release and get the release ID
+            TIMESTAMP=$(date -u "+%Y-%m-%d-%H-%M-%S")
+            CREATE_RESULT_JSON=$(create_release ${JIRA_PROJECT_ID} ${TIMESTAMP})
+            RELEASE_ID=$(echo "${CREATE_RESULT_JSON}" | jq .id)
+          
+            PROJECT_KEY=$(echo "${JIRA_PROJECT_ID}" | cut -d',' -f1)
+            REL_LINK="${JIRA_BASE_URL}/projects/${PROJECT_KEY}/versions/${RELEASE_ID}"
+            echo "REL_LINK=${REL_LINK}" >> $GITHUB_ENV
+            echo "Created Jira release_id: ${RELEASE_ID}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Release candidate exist"
+            RELEASE_ID=$(echo "${REL_VALUES_JSON}" |  jq -r '.[0].id')
+            echo "Updated Jira release_id: ${RELEASE_ID}" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "RELEASE_ID=${RELEASE_ID}" >> $GITHUB_ENV
+
+      - name: Begin trail
+        if: ${{ steps.release-candidate.outputs.release-was-created == 'true' }}
+        shell: bash
+        run: |
+          echo "STEP: Begin trail with ORG: '${KOSLI_ORG}' FLOW: '${KOSLI_FLOW}' TRAIL: '${{ env.RELEASE_ID }}' TEMPLATE-FILE: '${KOSLI_TEMPLATE_FILE}'"
+          kosli begin trail ${{ env.RELEASE_ID }} --template-file ${KOSLI_TEMPLATE_FILE} --external-url JiraRelease=${{ env.REL_LINK }}
+
+
+      - name: Add trail to jira release
+        if: ${{ steps.release-candidate.outputs.release-was-created == 'true' }}
+        shell: bash
+        run: |
+          echo "STEP: Add trail to jira release"
+          source .github/actions/common/lib-jira.sh
+          kosli_trail_link="https://app.kosli.com/${KOSLI_ORG}/flows/${KOSLI_FLOW}/trails/${{ env.RELEASE_ID }}"
+          add_trail_link_to_release ${{ env.RELEASE_ID }} ${kosli_trail_link}
+
+      - name: Report current prod SW
+        if: ${{ steps.release-candidate.outputs.release-was-created == 'true' }}
+        shell: bash
+        run: |
+          echo "STEP: Report current prod SW"
+          source .github/actions/common/lib-kosli.sh
+          get_current_running_env_json ${KOSLI_ENV_PROD} > /tmp/prod-env.json
+          create_running_sw_short_list_json /tmp/prod-env.json > /tmp/prod-sw.json
+          
+          kosli attest custom \
+            --type=running-sw \
+            --name prod-software \
+            --trail ${{ env.RELEASE_ID }} \
+            --attestation-data /tmp/prod-sw.json
+          echo "Current prod SW:" >> $GITHUB_STEP_SUMMARY
+          cat /tmp/prod-sw.json | jq >> $GITHUB_STEP_SUMMARY

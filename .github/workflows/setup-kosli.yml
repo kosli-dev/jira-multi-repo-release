@@ -26,29 +26,12 @@ jobs:
             ${{ vars.KOSLI_CLI_VERSION }}
 
       ### flows ###
-#      - name: Create jira-example-source flow
-#        run:
-#          kosli create flow jira-example-source
-#            --description "Track jira example attestations for source"
-#            --template-file kosli-flow-templates/source-template.yml
-#
-#      - name: Create jira-example-backend flow
-#        run:
-#          kosli create flow jira-example-backend
-#            --description "Track jira example attestations for backend"
-#            --template-file kosli-flow-templates/backend-template.yml
-#
-#      - name: Create jira-example-frontend flow
-#        run:
-#          kosli create flow jira-example-frontend
-#            --description "Track jira example attestations for frontend"
-#            --template-file kosli-flow-templates/frontend-template.yml
-#
-#      - name: Create jira-example-release flow
-#        run:
-#          kosli create flow jira-example-release
-#            --description "Track jira example attestations for releases"
-#            --template-file kosli-flow-templates/release-template.yml
+      - name: Create jira-multi-repo-release flow
+        run:
+          kosli create flow jira-multi-repo-release
+            --description "Track a top level release of multiple applications"
+            --template-file kosli-flow-templates/release-template.yml
+
 
       ### Custom attestation types ###
       - name: Create running-sw attestation type
@@ -103,13 +86,13 @@ jobs:
 
 
       ### detach old policies
-#      - name: Detach jira-example-dev-staging-policy
+#      - name: Detach jira-multi-repo-releases-dev-staging-policy
 #        run:
-#          kosli detach-policy jira-example-dev-staging-policy
+#          kosli detach-policy jira-multi-repo-releases-dev-staging-policy
 #            --environment  ${{ env.KOSLI_ENV_DEV }}
 #            --environment  ${{ env.KOSLI_ENV_STAGING }}
 #
-#      - name: Detach jira-example-prod-policy
+#      - name: Detach jira-multi-repo-releases-prod-policy
 #        run:
-#          kosli detach-policy jira-example-prod-policy
+#          kosli detach-policy jira-multi-repo-releases-prod-policy
 #            --environment  ${{ env.KOSLI_ENV_PROD }}
