@@ -86,7 +86,7 @@ function get_all_jira_issue_keys_for_commits
     local issueKeys=""
     for commit in ${commits}; do
         issueKey=$(get_jira_issue_keys_from_trail $flowName $commit 2> /dev/null)
-        issueKeys+=" $issueKey"
+        issueKeys+=" ${issueKey^^}"
         debug_log "Issues found: ${issueKey} From commit: ${commit}"
     done
     echo $issueKeys
