@@ -1,0 +1,47 @@
+name: Kosli Attest Jira Issue List
+
+# Attest a list of jira issues referred between two git commits
+
+inputs:
+  # The Following environment variables must be set in your GitHub action
+  # before using this composite
+  # env:
+  #   KOSLI_ORG: kosli
+  #   KOSLI_FLOW: your-flow-name
+  #   KOSLI_TRAIL: your-trail-name (often release ID)
+  #   KOSLI_API_TOKEN: "${{ secrets.KOSLI_API_TOKEN }}"
+  #   KOSLI_CLI_VERSION: 2.11.11
+  kosli-source-flow:
+    description: "Flow where Jira Issues are recorded"
+  old-commit:
+    description: "Oldest commit (will not be included)"
+    required: true
+  new-commit:
+    description: "Newest commit"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Kosli cli
+      uses: kosli-dev/setup-cli-action@v2
+      with:
+        version:
+          ${{ env.KOSLI_CLI_VERSION }}
+
+    - name: Attest Jira issue list
+      shell: bash
+      run: |
+        source ${GITHUB_ACTION_PATH}/../common/lib-kosli.sh        
+        ISSUES=$(get_issue_keys_between_commits \
+            ${{ inputs.old-commit }} ${{ inputs.new-commit }} \
+            ${{ inputs.kosli-source-flow }}) 
+        echo ${ISSUES} | jq -R 'split(" ")' > /tmp/jira-issues.json
+
+        kosli attest custom \
+          --type=jira-issues-list \
+          --name jira-issues \
+          --attestation-data /tmp/jira-issues.json \
+          --annotate "JiraIssues=${ISSUES}"
+        
+        echo "Jira issues: ${ISSUES}" >> $GITHUB_STEP_SUMMARY

@@ -53,9 +53,9 @@ jobs:
       ### Custom attestation types ###
       - name: Create running-sw attestation type
         run:
-          kosli create attestation-type jira-issue-list
+          kosli create attestation-type jira-issues-list
               --description "List of Jira issues"
-              --schema custom-attestation-types/jira-issue-list-schema.json
+              --schema custom-attestation-types/jira-issues-list-schema.json
 
       ### environments ###
       - name: Create prod env
