@@ -3,6 +3,11 @@ name: Generate Jira Release
 
 on:
   workflow_dispatch:
+#    inputs:
+#      release-name:
+#        description: 'Name of release'
+#        required: false
+#        default: ''
 
 env:
   # kosli commands picks up org, flow, trail and api-token from these environment variables
@@ -27,6 +32,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Setup Kosli cli
+        uses: kosli-dev/setup-cli-action@v2
+        with:
+          version:
+            ${{ vars.KOSLI_CLI_VERSION }}
 
       - name: Create or get Jira release candidate
         id: release-candidate
