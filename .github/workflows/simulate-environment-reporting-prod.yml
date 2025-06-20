@@ -36,26 +36,37 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p running
-          REPO=jira-multi-repo-front
-          REPO_FILE_PATH=app/frontend/frontend-content.txt
 
-          # Extract destination path by removing 'app/' prefix
-          REPO_FILE=${REPO_FILE_PATH#app/}
+          # Define associative array mapping repo to file path
+          declare -A REPO_FILES=(
+            ["jira-multi-repo-front"]="app/frontend/frontend-content.txt"
+            ["jira-multi-repo-back"]="app/backend/backend-content.txt"
+          )
 
-          LATEST_TAG=$(gh api repos/kosli-dev/${REPO}/tags \
-            --jq '[.[] | select(.name | test("^release-[0-9]+\\.[0-9]+\\.[0-9]+$"))] | .[0].name')
+          # Loop over the repositories
+          for REPO in "${!REPO_FILES[@]}"; do
+            REPO_FILE_PATH="${REPO_FILES[$REPO]}"
 
-          echo "Latest release tag: $LATEST_TAG"
-          echo "Destination file: running/${REPO_FILE}"
+            echo "Processing repo: $REPO, file: $REPO_FILE_PATH"
 
-          # Create directory structure for the destination file
-          mkdir -p "running/$(dirname "${REPO_FILE}")"
+            # Extract destination path by removing 'app/' prefix
+            REPO_FILE=${REPO_FILE_PATH#app/}
 
-          # Fetch the file
-          gh api "repos/kosli-dev/${REPO}/contents/${REPO_FILE_PATH}?ref=${LATEST_TAG}" \
-            --jq '.content' | base64 -d > running/${REPO_FILE}
+            LATEST_TAG=$(gh api repos/kosli-dev/${REPO}/tags \
+              --jq '[.[] | select(.name | test("^release-[0-9]+\\.[0-9]+\\.[0-9]+$"))] | .[0].name')
 
-          echo "File downloaded successfully to running/${REPO_FILE}"
+            echo "Latest release tag for $REPO: $LATEST_TAG"
+            echo "Destination file: running/${REPO_FILE}"
+
+            # Create directory structure for the destination file
+            mkdir -p "running/$(dirname "${REPO_FILE}")"
+
+            # Fetch the file
+            gh api "repos/kosli-dev/${REPO}/contents/${REPO_FILE_PATH}?ref=${LATEST_TAG}" \
+              --jq '.content' | base64 -d > running/${REPO_FILE}
+
+            echo "File downloaded successfully to running/${REPO_FILE}"
+          done
 
           kosli snapshot paths ${{ env.KOSLI_ENV }} \
             --paths-file server-paths-file.yml
