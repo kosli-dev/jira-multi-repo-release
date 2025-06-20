@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JIRA Issues List",
+  "description": "A list of JIRA issue keys",
+  "type": "array",
+  "items": {
+    "type": "string",
+    "pattern": "^[A-Z]+-[0-9]+$",
+    "description": "JIRA issue key in format PROJECT-NUMBER (e.g., MRJP-4)"
+  },
+  "minItems": 0,
+  "uniqueItems": true,
+  "examples": [
+    [],
+    ["MRJP-4"],
+    ["MRJP-4", "MRJP-5"],
+    ["ABC-123", "XYZ-456", "TEST-1"]
+  ]
+}
