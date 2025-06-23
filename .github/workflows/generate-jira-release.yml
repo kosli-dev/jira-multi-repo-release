@@ -62,14 +62,14 @@ jobs:
             PROJECT_KEY=$(echo "${JIRA_PROJECT_ID}" | cut -d',' -f1)
             REL_LINK="${JIRA_BASE_URL}/projects/${PROJECT_KEY}/versions/${RELEASE_ID}"
             echo "REL_LINK=${REL_LINK}" >> $GITHUB_ENV
-            echo "Created Jira release_name: ${RELEASE_NAME}" >> $GITHUB_STEP_SUMMARY
-            echo "               release_id: ${RELEASE_ID}" >> $GITHUB_STEP_SUMMARY
+            echo "Created Jira release_name: **${RELEASE_NAME}**" >> $GITHUB_STEP_SUMMARY
+            echo "release_id: **${RELEASE_ID}**" >> $GITHUB_STEP_SUMMARY
           else
             echo "Release candidate exist"
             RELEASE_ID=$(echo "${REL_VALUES_JSON}" |  jq -r '.[0].id')
             RELEASE_NAME=$(echo "${REL_VALUES_JSON}" |  jq -r '.[0].name')
-            echo "Updated Jira release_name: ${RELEASE_NAME}" >> $GITHUB_STEP_SUMMARY
-            echo "               release_id: ${RELEASE_ID}" >> $GITHUB_STEP_SUMMARY
+            echo "Updated Jira release_name: **${RELEASE_NAME}"** >> $GITHUB_STEP_SUMMARY
+            echo "release_id: **${RELEASE_ID}**" >> $GITHUB_STEP_SUMMARY
           fi
           echo "RELEASE_ID=${RELEASE_ID}" >> $GITHUB_ENV
           echo "RELEASE_NAME=${RELEASE_NAME}" >> $GITHUB_ENV
