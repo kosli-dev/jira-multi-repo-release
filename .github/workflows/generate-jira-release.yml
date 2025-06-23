@@ -144,26 +144,30 @@ jobs:
           echo ${ISSUES} | jq -R 'split(" ")' > /tmp/jira-issues.json
           echo "JIRA_KEYS_IN_KOSLI_RELEASES=${ISSUES}" >> $GITHUB_ENV
 
-            kosli attest custom \
-              --type=jira-issues-list \
-              --name jira-issues \
-              --trail ${{ env.RELEASE_NAME }} \
-              --attestation-data /tmp/jira-issues.json \
-              --annotate "JiraIssues=${ISSUES}"
+          kosli attest custom \
+            --type=jira-issues-list \
+            --name jira-issues \
+            --trail ${{ env.RELEASE_NAME }} \
+            --attestation-data /tmp/jira-issues.json \
+            --annotate "JiraIssues=${ISSUES}"
           
           echo "Attested Jira issues to kosli release ${{ env.RELEASE_NAME }}: **${ISSUES}**" >> $GITHUB_STEP_SUMMARY
 
           set -x
+          echo AAA
           cat ${SW_UPDATE_PLAN_FILE}
+          echo BBB
           jq -s 'add' ${SW_UPDATE_PLAN_FILE} > /tmp/sw-update-plan.json 
+          echo CCC
 
           cat /tmp/sw-update-plan.json
+          echo DDD
 
           kosli attest custom \
-              --type=sw-update-plan \
-              --name sw-update-plan \
-              --trail ${{ env.RELEASE_NAME }} \
-              --attestation-data /tmp/sw-update-plan.json
+            --type=sw-update-plan \
+            --name sw-update-plan \
+            --trail ${{ env.RELEASE_NAME }} \
+            --attestation-data /tmp/sw-update-plan.json
           
           echo "Attested Next SW kosli release ${{ env.RELEASE_NAME }}:" >> $GITHUB_STEP_SUMMARY
           cat /tmp/sw-update-plan.json >> $GITHUB_STEP_SUMMARY
