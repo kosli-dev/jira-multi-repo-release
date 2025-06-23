@@ -105,7 +105,24 @@ jobs:
             --annotate Approver="${APPROVER_NAME}" \
             --annotate JiraRelease=${REL_LINK}
 
-      # - name: Attest approval of SW
+      - name: Attest approval of SW
+        run: |
+          source .github/actions/common/lib-kosli.sh
+          get_attestation_from_trail ${KOSLI_FLOW_RELEASE} ${RELEASE_NAME} "sw-update-plan" \
+            | jq '.[0].attestation_data' > /tmp/sw-update-plan.json
+
+          while IFS=' ' read -r template_reference_name next_sw release_flow; do          
+            kosli attest custom \
+              --type=approval-jira \
+              --name ${template_reference_name}.release-approval \
+              --flow ${release_flow} \
+              --trail ${next_sw} \
+              --attestation-data /tmp/jira-release.json \
+              --annotate Approver="${APPROVER_NAME}" \
+              --annotate JiraRelease=${REL_LINK}
+          
+          done < <(jq -r 'to_entries[] | select(.value["current-sw"] != .value["next-sw"]) | "\(.key) \(.value["next-sw"]) \(.value["release-flow"])"' /tmp/sw-update-plan.json)
+
 
   deploy-to-prod:
     name: Deploy to prod
@@ -127,19 +144,19 @@ jobs:
       # Get SW to deploy.
       # Deploy SW.
 
-  set-to-released:
-    name: Set to released in Jira
-    needs: [check-approved-release, attest-approval, deploy-to-prod]
-    if: needs.check-approved-release.outputs.new-approved-sw == 'true'
-    runs-on: ubuntu-latest
-    env:
-      RELEASE_ID: ${{ needs.check-approved-release.outputs.release-id }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set to released
-        run: |
-          source .github/actions/common/lib-jira.sh
-          set_release_to_released ${RELEASE_ID}
+#  set-to-released:
+#    name: Set to released in Jira
+#    needs: [check-approved-release, attest-approval, deploy-to-prod]
+#    if: needs.check-approved-release.outputs.new-approved-sw == 'true'
+#    runs-on: ubuntu-latest
+#    env:
+#      RELEASE_ID: ${{ needs.check-approved-release.outputs.release-id }}
+#    steps:
+#      - uses: actions/checkout@v4
+#        with:
+#          fetch-depth: 0
+#
+#      - name: Set to released
+#        run: |
+#          source .github/actions/common/lib-jira.sh
+#          set_release_to_released ${RELEASE_ID}

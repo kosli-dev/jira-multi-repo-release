@@ -15,6 +15,10 @@
         "next-sw": {
           "type": "string",
           "description": "The next software version"
+        },
+        "release-flow": {
+          "type": "string",
+          "description": "The Kosli release flow this artifact comes from"
         }
       },
       "required": ["current-sw", "next-sw"],
