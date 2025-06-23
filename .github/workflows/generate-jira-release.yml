@@ -153,8 +153,11 @@ jobs:
           
           echo "Attested Jira issues to kosli release ${{ env.RELEASE_NAME }}: **${ISSUES}**" >> $GITHUB_STEP_SUMMARY
 
+          cat ${NEXT_SW_VERSION_FILE}
           set -x
           jq -s 'add' ${NEXT_SW_VERSION_FILE} > /tmp/sw-update-plan.json 
+
+          cat /tmp/sw-update-plan.json
 
           kosli attest custom \
               --type=sw-update-plan \
