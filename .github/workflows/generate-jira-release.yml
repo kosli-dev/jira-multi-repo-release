@@ -3,11 +3,11 @@ name: Generate Jira Release
 
 on:
   workflow_dispatch:
-#    inputs:
-#      release-name:
-#        description: 'Name of release'
-#        required: false
-#        default: ''
+    inputs:
+      release-name:
+        description: 'Name of release'
+        required: false
+        default: ''
 
 env:
   # kosli commands picks up org, flow, trail and api-token from these environment variables
@@ -52,8 +52,12 @@ jobs:
             echo "release-was-created=true" >> $GITHUB_OUTPUT
           
             # Create the release and get the release ID
-            TIMESTAMP=$(date -u "+%Y-%m-%d-%H-%M-%S")
-            CREATE_RESULT_JSON=$(create_release ${JIRA_PROJECT_ID} ${TIMESTAMP})
+          
+            RELEASE_NAME="${{ github.event.inputs.release-name }}"
+            if [ -z "$RELEASE_NAME" ]; then
+              RELEASE_NAME=$(date -u "+%Y-%m-%d")
+            fi
+            CREATE_RESULT_JSON=$(create_release ${JIRA_PROJECT_ID} ${RELEASE_NAME})
             RELEASE_ID=$(echo "${CREATE_RESULT_JSON}" | jq .id)
           
             PROJECT_KEY=$(echo "${JIRA_PROJECT_ID}" | cut -d',' -f1)
