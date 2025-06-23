@@ -147,3 +147,13 @@ function get_list_of_artifacts_with_release_flow_info
         }
     ]' ${envJsonFile}
 }
+
+function get_artifact_fingerprint_from_trail
+{
+    local -r flowName=$1; shift
+    local -r trailName=$1; shift
+    local -r templateReferenceName=$1; shift
+
+    kosli get trail ${trailName} --flow ${flowName} --output json > /tmp/trail-${trailName}.json
+    jq -r .compliance_status.artifacts_statuses.${templateReferenceName}.artifact_fingerprint /tmp/trail-${trailName}.json
+}
