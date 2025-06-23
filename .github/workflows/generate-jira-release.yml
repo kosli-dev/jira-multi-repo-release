@@ -136,7 +136,7 @@ jobs:
               --attestation-data /tmp/jira-issues.json \
               --annotate "JiraIssues=${ISSUES}"
           
-          echo "Jira issues: **${ISSUES}**" >> $GITHUB_STEP_SUMMARY
+          echo "Attested Jira issues to kosli release ${{ env.RELEASE_NAME }}: ${ISSUES}" >> $GITHUB_STEP_SUMMARY
 
       - name: Add Jira issues to release
         shell: bash
@@ -149,7 +149,7 @@ jobs:
           JIRA_KEYS_IN_KOSLI=(${{ env.JIRA_KEYS_IN_KOSLI_RELEASES }})
 
           # Add all new jira issues between prod and staging
-          echo "Adding Jira issues:"  >> $GITHUB_STEP_SUMMARY
+          echo "Added Jira issues to Jira release ${{ env.RELEASE_NAME }}:"  >> $GITHUB_STEP_SUMMARY
           for JIRA_KEY in ${JIRA_KEYS_IN_KOSLI[@]}; do
             if [[ ! " ${JIRA_KEYS_IN_REL[@]} " =~ " ${JIRA_KEY} " ]]; then
               add_issue_to_release ${JIRA_KEY} ${{ env.RELEASE_ID }}
