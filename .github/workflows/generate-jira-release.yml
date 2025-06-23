@@ -3,6 +3,11 @@ name: Generate Jira Release
 
 on:
   workflow_dispatch:
+    inputs:
+      release-name:
+        description: 'Name of release'
+        required: false
+        default: ''
 
 env:
   # kosli commands picks up org, flow, trail and api-token from these environment variables
@@ -28,6 +33,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Kosli cli
+        uses: kosli-dev/setup-cli-action@v2
+        with:
+          version:
+            ${{ vars.KOSLI_CLI_VERSION }}
+
       - name: Create or get Jira release candidate
         id: release-candidate
         run: |
@@ -41,8 +52,12 @@ jobs:
             echo "release-was-created=true" >> $GITHUB_OUTPUT
           
             # Create the release and get the release ID
-            TIMESTAMP=$(date -u "+%Y-%m-%d-%H-%M-%S")
-            CREATE_RESULT_JSON=$(create_release ${JIRA_PROJECT_ID} ${TIMESTAMP})
+          
+            RELEASE_NAME="${{ github.event.inputs.release-name }}"
+            if [ -z "$RELEASE_NAME" ]; then
+              RELEASE_NAME=$(date -u "+%Y-%m-%d")
+            fi
+            CREATE_RESULT_JSON=$(create_release ${JIRA_PROJECT_ID} ${RELEASE_NAME})
             RELEASE_ID=$(echo "${CREATE_RESULT_JSON}" | jq .id)
           
             PROJECT_KEY=$(echo "${JIRA_PROJECT_ID}" | cut -d',' -f1)
@@ -89,3 +104,30 @@ jobs:
             --attestation-data /tmp/prod-sw.json
           echo "Current prod SW:" >> $GITHUB_STEP_SUMMARY
           cat /tmp/prod-sw.json | jq >> $GITHUB_STEP_SUMMARY
+
+      - name: Report jira issues
+        shell: bash
+        run: |
+          echo "STEP: Report jira issues"
+          source .github/actions/common/lib-kosli.sh
+          get_list_of_artifacts_with_release_flow_info /tmp/prod-env.json >  /tmp/prod-release-sw-versions.json
+
+          # Loop over all artifacts, find the all the trails that are newer then what is running now,
+          # get all the jira issues from those trails.
+          ALL_ISSUES_FILE="/tmp/all_issues.txt"
+          > ${ALL_ISSUES_FILE}
+          jq -r '.[] | "\(.flow_name) \(.trail_name) \(.name)"' /tmp/prod-release-sw-versions.json | \
+          while read -r flow_name trail_name artifact_name; do
+              get_issue_keys_in_trails_newer_then ${flow_name} ${trail_name} > ${ALL_ISSUES_FILE}
+          done
+          
+          ISSUES=$(sort -uV ${ALL_ISSUES_FILE} | tr '\n' ' ')
+          echo ${ISSUES} | jq -R 'split(" ")' > /tmp/jira-issues.json
+  
+          kosli attest custom \
+              --type=jira-issues-list \
+              --name jira-issues \
+              --attestation-data /tmp/jira-issues.json \
+              --annotate "JiraIssues=${ISSUES}"
+          
+          echo "Jira issues: ${ISSUES}" >> $GITHUB_STEP_SUMMARY

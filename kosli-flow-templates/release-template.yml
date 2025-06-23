@@ -3,7 +3,7 @@ trail:
     attestations:
         - name: prod-software
           type: custom:running-sw
-#        - name: new-software
-#          type: custom:running-sw
+        - name: jira-issues
+          type: custom:jira-issues-list
         - name: release-approval
           type: custom:approval-jira

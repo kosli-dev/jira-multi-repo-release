@@ -116,3 +116,47 @@ function get_issue_keys_between_commits
     issueKeys=$(get_all_jira_issue_keys_for_commits ${flowName} "${commits}")
     echo ${issueKeys} | tr ' ' '\n' | sort -uV | tr '\n' ' '
 }
+
+function get_trails_newer_then
+{
+    local -r flowName=$1; shift
+    local -r trailName=$1; shift
+
+    kosli list trails --flow ${flowName} --output json | jq \
+        '. as $trails |
+         ($trails | map(.name) | index("'${trailName}'")) as $index |
+         if $index then $trails[:$index] else $trails end'
+}
+
+function get_issue_keys_in_trails_newer_then
+{
+    local -r flowName=$1; shift
+    local -r trailName=$1; shift
+    > /tmp/all_issues.txt
+
+    trailNames=$(get_trails_newer_then ${flowName} ${trailName} | jq -r '.[].name')
+    for trail in ${trailNames}; do
+        get_attestation_from_trail ${flowName} ${trail} "jira-issues" | jq -r '.[].attestation_data[]?' >> /tmp/all_issues.txt
+    done
+    sort -uV /tmp/all_issues.txt
+}
+
+function get_list_of_artifacts_with_release_flow_info
+{
+    # Based on a kosli environment snapshot extract out the
+    # artifacts and the trail that starts with 'release-'
+    local envJsonFile=$1; shift
+
+    jq -c '[
+        .[] as $artifact |
+        $artifact.flows[] |
+        select(.trail_name | startswith("release-")) |
+        {
+            name: $artifact.name,
+            trail_name: .trail_name,
+            flow_name: .flow_name,
+            template_reference_name: .template_reference_name,
+            fingerprint: $artifact.fingerprint
+        }
+    ]' ${envJsonFile}
+}
