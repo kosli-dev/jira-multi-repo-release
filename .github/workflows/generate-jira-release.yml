@@ -119,7 +119,7 @@ jobs:
           # Loop over all artifacts, find the all the trails that are newer then what is running now
           ALL_ISSUES_FILE="/tmp/all_issues.txt"
           > ${ALL_ISSUES_FILE}
-          SW_UPDATE_PLAN_FILE="/tmp/sw-update-plan.txt"
+          SW_UPDATE_PLAN_FILE="/tmp/sw-update-plan.json"
           > ${SW_UPDATE_PLAN_FILE}
 
           # Create JSON objects for each artifact instead of simple key=value
@@ -153,14 +153,16 @@ jobs:
           
           echo "Attested Jira issues to kosli release ${{ env.RELEASE_NAME }}: **${ISSUES}**" >> $GITHUB_STEP_SUMMARY
 
+          jq -s 'add' ${NEXT_SW_VERSION_FILE} > /tmp/sw-update-plan.json 
+
           kosli attest custom \
               --type=sw-update-plan \
               --name sw-update-plan \
               --trail ${{ env.RELEASE_NAME }} \
-              --attestation-data ${SW_UPDATE_PLAN_FILE}
+              --attestation-data /tmp/sw-update-plan.json
           
           echo "Attested Next SW kosli release ${{ env.RELEASE_NAME }}:" >> $GITHUB_STEP_SUMMARY
-          cat ${SW_UPDATE_PLAN_FILE} >> $GITHUB_STEP_SUMMARY
+          cat /tmp/sw-update-plan.json >> $GITHUB_STEP_SUMMARY
           
 
       - name: Add Jira issues to release
