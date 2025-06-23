@@ -50,7 +50,7 @@ jobs:
             echo "No release candidate exist"
             echo "release-was-created=true" >> $GITHUB_OUTPUT
           
-            # Create the release and get the release ID and release name
+            # Create the release and get the release ID
           
             RELEASE_NAME="${{ github.event.inputs.release-name }}"
             if [ -z "$RELEASE_NAME" ]; then
@@ -125,13 +125,17 @@ jobs:
           # Create JSON objects for each artifact instead of simple key=value
           while read -r flow_name trail_name artifact_name; do
             get_trails_newer_then ${flow_name} ${trail_name} > /tmp/${artifact_name}.json
-            NEXT_SW_VERSION_MAP[${artifact_name}]=$(jq -r .[0].name /tmp/${artifact_name}.json)
+
+            NEXT_VERSION=$(jq -r '.[0].name' /tmp/${artifact_name}.json)
+            if [ "$NEXT_VERSION" == "null" ]; then
+              NEXT_VERSION="$trail_name"
+            fi
 
             # Create JSON object with both current and next versions
             jq -n \
               --arg artifact "$artifact_name" \
               --arg current "$trail_name" \
-              --arg next "$(jq -r .[0].name /tmp/${artifact_name}.json)" \
+              --arg next "$NEXT_VERSION" \
               '{($artifact): {"current-sw": $current, "next-sw": $next}}' >> ${SW_UPDATE_PLAN_FILE}
 
              # Loop over the trails to get a list of Jira issues
