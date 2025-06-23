@@ -140,13 +140,6 @@ jobs:
 
       - name: Add Jira issues to release
         shell: bash
-        env:
-          KOSLI_ORG: ${{ inputs.kosli-org }}
-          KOSLI_FLOW: ${{ inputs.kosli-flow }}
-          KOSLI_API_TOKEN: ${{ inputs.kosli-api-token }}
-          JIRA_BASE_URL: ${{ inputs.jira-base-url }}
-          JIRA_USERNAME: ${{ inputs.jira-username }}
-          JIRA_API_TOKEN: ${{ inputs.jira-api-token }}
         run: |
           echo "STEP: Add Jira issues to release"
           source .github/actions/common/lib-jira.sh
