@@ -140,5 +140,5 @@ jobs:
 
       - name: Set to released
         run: |
-          source scripts/lib-jira.sh
+          source .github/actions/common/lib-jira.sh
           set_release_to_released ${RELEASE_ID}
