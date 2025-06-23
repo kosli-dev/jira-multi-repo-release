@@ -114,9 +114,9 @@ jobs:
           while IFS=' ' read -r template_reference_name next_sw release_flow; do          
             kosli attest custom \
               --type=approval-jira \
-              --name release-approval \
+              --name release-approval.${template_reference_name} \
               --flow ${release_flow} \
-              --trail ${next_sw}.${template_reference_name} \
+              --trail ${next_sw} \
               --attestation-data /tmp/jira-release.json \
               --annotate Approver="${APPROVER_NAME}" \
               --annotate JiraRelease=${REL_LINK}
