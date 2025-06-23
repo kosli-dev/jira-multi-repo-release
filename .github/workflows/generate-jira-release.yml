@@ -119,7 +119,7 @@ jobs:
           # Loop over all artifacts, find the all the trails that are newer then what is running now
           ALL_ISSUES_FILE="/tmp/all_issues.txt"
           > ${ALL_ISSUES_FILE}
-          SW_UPDATE_PLAN_FILE="/tmp/sw-update-plan.json"
+          SW_UPDATE_PLAN_FILE="/tmp/sw-update-plan.txt"
           > ${SW_UPDATE_PLAN_FILE}
 
           # Create JSON objects for each artifact instead of simple key=value
