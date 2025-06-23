@@ -112,8 +112,6 @@ jobs:
             | jq '.[0].attestation_data' > /tmp/sw-update-plan.json
 
           while IFS=' ' read -r template_reference_name next_sw release_flow; do          
-            echo "Calling kosli attest custom --flow $release_flow --trail $next_sw"
-            kosli attest custom --flow "$release_flow" --trail "$next_sw"
             kosli attest custom \
               --type=approval-jira \
               --name release-approval \
