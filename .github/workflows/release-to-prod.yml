@@ -144,19 +144,19 @@ jobs:
       # Get SW to deploy.
       # Deploy SW.
 
-#  set-to-released:
-#    name: Set to released in Jira
-#    needs: [check-approved-release, attest-approval, deploy-to-prod]
-#    if: needs.check-approved-release.outputs.new-approved-sw == 'true'
-#    runs-on: ubuntu-latest
-#    env:
-#      RELEASE_ID: ${{ needs.check-approved-release.outputs.release-id }}
-#    steps:
-#      - uses: actions/checkout@v4
-#        with:
-#          fetch-depth: 0
-#
-#      - name: Set to released
-#        run: |
-#          source .github/actions/common/lib-jira.sh
-#          set_release_to_released ${RELEASE_ID}
+  set-to-released:
+    name: Set to released in Jira
+    needs: [check-approved-release, attest-approval, deploy-to-prod]
+    if: needs.check-approved-release.outputs.new-approved-sw == 'true'
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_ID: ${{ needs.check-approved-release.outputs.release-id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set to released
+        run: |
+          source .github/actions/common/lib-jira.sh
+          set_release_to_released ${RELEASE_ID}
