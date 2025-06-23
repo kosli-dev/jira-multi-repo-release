@@ -13,7 +13,6 @@ env:
   # kosli commands picks up org, flow, trail and api-token from these environment variables
   KOSLI_ORG: "${{ vars.KOSLI_ORG }}"
   KOSLI_FLOW: "jira-multi-repo-release"
-  KOSLI_TRAIL: ${{ github.sha }}
   KOSLI_ENV_PROD: "jira-multi-repo-prod"
   KOSLI_API_TOKEN: "${{ secrets.KOSLI_PUBLIC_API_TOKEN }}"
   KOSLI_CLI_VERSION: "${{ vars.KOSLI_CLI_VERSION }}"
@@ -51,7 +50,7 @@ jobs:
             echo "No release candidate exist"
             echo "release-was-created=true" >> $GITHUB_OUTPUT
           
-            # Create the release and get the release ID
+            # Create the release and get the release ID and release name
           
             RELEASE_NAME="${{ github.event.inputs.release-name }}"
             if [ -z "$RELEASE_NAME" ]; then
@@ -67,16 +66,19 @@ jobs:
           else
             echo "Release candidate exist"
             RELEASE_ID=$(echo "${REL_VALUES_JSON}" |  jq -r '.[0].id')
-            echo "Updated Jira release_id: ${RELEASE_ID}" >> $GITHUB_STEP_SUMMARY
+            RELEASE_NAME=$(echo "${REL_VALUES_JSON}" |  jq -r '.[0].name')
+            echo "Updated Jira release_name: ${RELEASE_NAME}" >> $GITHUB_STEP_SUMMARY
+            echo "             release_id: ${RELEASE_ID}" >> $GITHUB_STEP_SUMMARY
           fi
           echo "RELEASE_ID=${RELEASE_ID}" >> $GITHUB_ENV
+          echo "RELEASE_NAME=${RELEASE_NAME}" >> $GITHUB_ENV
 
       - name: Begin trail
         if: ${{ steps.release-candidate.outputs.release-was-created == 'true' }}
         shell: bash
         run: |
-          echo "STEP: Begin trail with ORG: '${KOSLI_ORG}' FLOW: '${KOSLI_FLOW}' TRAIL: '${{ env.RELEASE_ID }}' TEMPLATE-FILE: '${KOSLI_TEMPLATE_FILE}'"
-          kosli begin trail ${{ env.RELEASE_ID }} --template-file ${KOSLI_TEMPLATE_FILE} --external-url JiraRelease=${{ env.REL_LINK }}
+          echo "STEP: Begin trail with ORG: '${KOSLI_ORG}' FLOW: '${KOSLI_FLOW}' TRAIL: '${{ env.RELEASE_NAME }}' TEMPLATE-FILE: '${KOSLI_TEMPLATE_FILE}'"
+          kosli begin trail ${{ env.RELEASE_NAME }} --template-file ${KOSLI_TEMPLATE_FILE} --external-url JiraRelease=${{ env.REL_LINK }}
 
 
       - name: Add trail to jira release
@@ -85,7 +87,7 @@ jobs:
         run: |
           echo "STEP: Add trail to jira release"
           source .github/actions/common/lib-jira.sh
-          kosli_trail_link="https://app.kosli.com/${KOSLI_ORG}/flows/${KOSLI_FLOW}/trails/${{ env.RELEASE_ID }}"
+          kosli_trail_link="https://app.kosli.com/${KOSLI_ORG}/flows/${KOSLI_FLOW}/trails/${{ env.RELEASE_NAME }}"
           add_trail_link_to_release ${{ env.RELEASE_ID }} ${kosli_trail_link}
 
       - name: Report current prod SW
@@ -100,7 +102,7 @@ jobs:
           kosli attest custom \
             --type=running-sw \
             --name prod-software \
-            --trail ${{ env.RELEASE_ID }} \
+            --trail ${{ env.RELEASE_NAME }} \
             --attestation-data /tmp/prod-sw.json
           echo "Current prod SW:" >> $GITHUB_STEP_SUMMARY
           cat /tmp/prod-sw.json | jq >> $GITHUB_STEP_SUMMARY
@@ -128,6 +130,7 @@ jobs:
           kosli attest custom \
               --type=jira-issues-list \
               --name jira-issues \
+              --trail ${{ env.RELEASE_NAME }} \
               --attestation-data /tmp/jira-issues.json \
               --annotate "JiraIssues=${ISSUES}"
           
