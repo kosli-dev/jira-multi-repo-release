@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/software-versions.schema.json",
+  "title": "Software Versions",
+  "description": "An object containing software artifacts with their current and next versions",
+  "type": "object",
+  "patternProperties": {
+    ".*": {
+      "type": "object",
+      "properties": {
+        "current-sw": {
+          "type": "string",
+          "description": "The current software version"
+        },
+        "next-sw": {
+          "type": "string",
+          "description": "The next software version"
+        }
+      },
+      "required": ["current-sw", "next-sw"],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

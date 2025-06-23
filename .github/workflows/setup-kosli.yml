@@ -40,11 +40,11 @@ jobs:
               --description "List of Jira issues"
               --schema custom-attestation-types/jira-issues-list-schema.json
 
-      - name: Create next-sw attestation type
+      - name: Create sw-update-plan attestation type
         run:
-          kosli create attestation-type next-sw
-              --description "Next SW to run"
-              --schema custom-attestation-types/next-sw-schema.json
+          kosli create attestation-type sw-update-plan
+              --description "Planed update of SW"
+              --schema custom-attestation-types/sw-update-plan-schema.json
 
       ### environments ###
       - name: Create prod env
