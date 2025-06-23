@@ -123,10 +123,8 @@ jobs:
               --annotate Approver="${APPROVER_NAME}" \
               --annotate JiraRelease=${REL_LINK}
           
-          done < <(jq -r 'to_entries[] | \
-            select(.value."current-sw" != .value."next-sw") | \
-            "\(.key) \(.value."next-sw") \(.value."release-flow")"' \
-            /tmp/sw-update-plan.json)
+          done < <(jq -r 'to_entries[] | select(.value["current-sw"] != .value["next-sw"]) | "\(.key) \(.value["next-sw"]) \(.value["release-flow"])"' /tmp/sw-update-plan.json)
+
 
   deploy-to-prod:
     name: Deploy to prod
