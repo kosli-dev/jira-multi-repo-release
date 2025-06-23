@@ -92,10 +92,12 @@ jobs:
           get_release ${{ env.RELEASE_ID }} > /tmp/jira-release.json
           add_approver_name_and_email /tmp/jira-release.json
           APPROVER_NAME=$(jq -r '.approvers[].displayName' /tmp/jira-release.json)
+          echo "APPROVER_NAME=$APPROVER_NAME" >> $GITHUB_ENV
           
           PROJECT_KEY=$(echo "${{ vars.JIRA_PROJECT_KEY }}" | cut -d',' -f1)
           REL_LINK="${JIRA_BASE_URL}/projects/${PROJECT_KEY}/versions/${{ env.RELEASE_ID }}"
-          
+          echo "REL_LINK=REL_LINK" >> $GITHUB_ENV
+
           kosli attest custom \
             --type=approval-jira \
             --name release-approval \
@@ -122,8 +124,8 @@ jobs:
               --trail ${next_sw} \
               --fingerprint ${FINGERPRINT} \
               --attestation-data /tmp/jira-release.json \
-              --annotate Approver="${APPROVER_NAME}" \
-              --annotate JiraRelease=${REL_LINK}
+              --annotate Approver="${{ env.APPROVER_NAME }}" \
+              --annotate JiraRelease=${{ env.REL_LINK }}
           
           done < <(jq -r 'to_entries[] | select(.value["current-sw"] != .value["next-sw"]) | "\(.key) \(.value["next-sw"]) \(.value["release-flow"])"' /tmp/sw-update-plan.json)
 
