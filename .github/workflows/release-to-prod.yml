@@ -34,7 +34,7 @@ jobs:
         id: check-jira
         run: |          
           echo "new-approved-sw=false" >> $GITHUB_OUTPUT
-          source scripts/lib-jira.sh
+          source .github/actions/common/lib-jira.sh
           
           CURRENT_REL_JSON=$(get_current_release_candidate ${{ env.JIRA_PROJECT_ID }})
           REL_VALUES_JSON=$(echo "${CURRENT_REL_JSON}" | jq .values)
@@ -86,7 +86,7 @@ jobs:
 
       - name: Report approval to release flow
         run: |
-          source scripts/lib-jira.sh
+          source .github/actions/common/lib-jira.sh
 
           get_release ${{ env.RELEASE_ID }} > /tmp/jira-release.json
           add_approver_name_and_email /tmp/jira-release.json
