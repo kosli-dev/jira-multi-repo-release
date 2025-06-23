@@ -116,27 +116,54 @@ jobs:
           [ -f /tmp/prod-env.json ] || get_current_running_env_json "${KOSLI_ENV_PROD}" > /tmp/prod-env.json
           get_list_of_artifacts_with_release_flow_info /tmp/prod-env.json >  /tmp/prod-release-sw-versions.json
 
-          # Loop over all artifacts, find the all the trails that are newer then what is running now,
-          # get all the jira issues from those trails.
+          # Loop over all artifacts, find the all the trails that are newer then what is running now
           ALL_ISSUES_FILE="/tmp/all_issues.txt"
           > ${ALL_ISSUES_FILE}
-          jq -r '.[] | "\(.flow_name) \(.trail_name) \(.name)"' /tmp/prod-release-sw-versions.json | \
+          SW_UPDATE_PLAN_FILE="/tmp/sw-update-plan.txt"
+          > ${SW_UPDATE_PLAN_FILE}
+
+          # Create JSON objects for each artifact instead of simple key=value
           while read -r flow_name trail_name artifact_name; do
-              get_issue_keys_in_trails_newer_then ${flow_name} ${trail_name} > ${ALL_ISSUES_FILE}
-          done
-          
+            get_trails_newer_then ${flow_name} ${trail_name} > /tmp/${artifact_name}.json
+            NEXT_SW_VERSION_MAP[${artifact_name}]=$(jq -r .[0].name /tmp/${artifact_name}.json)
+
+            # Create JSON object with both current and next versions
+            jq -n \
+              --arg artifact "$artifact_name" \
+              --arg current "$trail_name" \
+              --arg next "$(jq -r .[0].name /tmp/${artifact_name}.json)" \
+              '{($artifact): {"current-sw": $current, "next-sw": $next}}' >> ${SW_UPDATE_PLAN_FILE}
+
+             # Loop over the trails to get a list of Jira issues
+             for trail in $(jq -r '.[].name' /tmp/${artifact_name}.json); do
+               get_attestation_from_trail ${flow_name} ${trail} "jira-issues" | jq -r '.[].attestation_data[]?' >> ${ALL_ISSUES_FILE}
+             done
+          done < <(jq -r '.[] | "\(.flow_name) \(.trail_name) \(.template_reference_name)"' /tmp/prod-release-sw-versions.json)
+
           ISSUES=$(sort -uV "${ALL_ISSUES_FILE}" | tr '\n' ' ' | sed 's/ *$//')
           echo ${ISSUES} | jq -R 'split(" ")' > /tmp/jira-issues.json
           echo "JIRA_KEYS_IN_KOSLI_RELEASES=${ISSUES}" >> $GITHUB_ENV
 
           kosli attest custom \
-              --type=jira-issues-list \
-              --name jira-issues \
-              --trail ${{ env.RELEASE_NAME }} \
-              --attestation-data /tmp/jira-issues.json \
-              --annotate "JiraIssues=${ISSUES}"
+            --type=jira-issues-list \
+            --name jira-issues \
+            --trail ${{ env.RELEASE_NAME }} \
+            --attestation-data /tmp/jira-issues.json \
+            --annotate "JiraIssues=${ISSUES}"
           
           echo "Attested Jira issues to kosli release ${{ env.RELEASE_NAME }}: **${ISSUES}**" >> $GITHUB_STEP_SUMMARY
+
+          jq -s 'add' ${SW_UPDATE_PLAN_FILE} > /tmp/sw-update-plan.json 
+
+          kosli attest custom \
+            --type=sw-update-plan \
+            --name sw-update-plan \
+            --trail ${{ env.RELEASE_NAME }} \
+            --attestation-data /tmp/sw-update-plan.json
+          
+          echo "Attested Next SW kosli release ${{ env.RELEASE_NAME }}:" >> $GITHUB_STEP_SUMMARY
+          cat /tmp/sw-update-plan.json >> $GITHUB_STEP_SUMMARY
+          
 
       - name: Add Jira issues to release
         shell: bash
