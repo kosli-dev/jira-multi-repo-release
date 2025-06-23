@@ -136,7 +136,8 @@ jobs:
               --arg artifact "$artifact_name" \
               --arg current "$trail_name" \
               --arg next "$NEXT_VERSION" \
-              '{($artifact): {"current-sw": $current, "next-sw": $next}}' >> ${SW_UPDATE_PLAN_FILE}
+              --arg flow "$flow_name" \
+              '{($artifact): {"current-sw": $current, "next-sw": $next, "release-flow": $flow}}' >> ${SW_UPDATE_PLAN_FILE}
       
              # Loop over the trails to get a list of Jira issues
              for trail in $(jq -r '.[].name' /tmp/${artifact_name}.json); do
