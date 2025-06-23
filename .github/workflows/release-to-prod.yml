@@ -1,0 +1,144 @@
+name: Check for release to Prod
+
+on:
+  workflow_dispatch:
+
+env:
+  # kosli commands picks up org, flow, trail and api-token from these environment variables
+  KOSLI_ORG: "${{ vars.KOSLI_ORG }}"
+  KOSLI_API_TOKEN: "${{ secrets.KOSLI_PUBLIC_API_TOKEN }}"
+  KOSLI_CLI_VERSION: "${{ vars.KOSLI_CLI_VERSION }}"
+  KOSLI_FLOW_RELEASE: "jira-multi-repo-release"
+  KOSLI_ENV_STAGING:  "${{ vars.KOSLI_ENV_STAGING }}"
+  KOSLI_ENV_PROD:  "${{ vars.KOSLI_ENV_PROD }}"
+  # KOSLI_DRY_RUN: true
+  JIRA_BASE_URL: "${{ vars.JIRA_BASE_URL }}"
+  JIRA_USERNAME: ${{ secrets.KOSLI_JIRA_USERNAME }}
+  JIRA_API_TOKEN: ${{ secrets.KOSLI_JIRA_API_TOKEN }}
+  JIRA_PROJECT_ID: "${{ vars.JIRA_PROJECT_ID }}"
+
+jobs:
+  check-approved-release:
+    name: Check if we have a release candidate that has been approved
+    runs-on: ubuntu-latest
+    outputs:
+      new-approved-sw: ${{ steps.check-jira.outputs.new-approved-sw }}
+      release-id: ${{ steps.check-jira.outputs.release-id }}
+      release-name: ${{ steps.check-jira.outputs.release-name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for approved release
+        id: check-jira
+        run: |          
+          echo "new-approved-sw=false" >> $GITHUB_OUTPUT
+          source scripts/lib-jira.sh
+          
+          CURRENT_REL_JSON=$(get_current_release_candidate ${{ env.JIRA_PROJECT_ID }})
+          REL_VALUES_JSON=$(echo "${CURRENT_REL_JSON}" | jq .values)
+          if [ "${REL_VALUES_JSON}" == "[]" ]; then
+            echo "No release candidate exist" >> $GITHUB_STEP_SUMMARY
+            exit 11
+          fi
+          RELEASE_ID=$(echo "${REL_VALUES_JSON}" |  jq -r '.[0].id')
+          echo "release-id=${RELEASE_ID}" >> $GITHUB_OUTPUT
+          RELEASE_NAME=$(echo "${REL_VALUES_JSON}" |  jq -r '.[0].name')
+          echo "release-name=${RELEASE_NAME}" >> $GITHUB_OUTPUT
+          
+          APPROVERS_JSON=$(get_approvers_in_release ${RELEASE_ID})
+          
+          if echo "$APPROVERS_JSON" | jq -e 'length == 0'; then
+            echo "No approvers in release" >> $GITHUB_STEP_SUMMARY
+            exit 12
+          fi
+          
+          if echo "$APPROVERS_JSON" | jq -e 'all(.status == "APPROVED")'; then
+            echo "APPROVED by all" >> $GITHUB_STEP_SUMMARY
+            echo "$APPROVERS_JSON" | jq >> $GITHUB_STEP_SUMMARY
+            echo "new-approved-sw=true" >> $GITHUB_OUTPUT
+            exit 0
+          else
+            echo "Not all statuses are APPROVED" >> $GITHUB_STEP_SUMMARY
+            echo "$APPROVERS_JSON" | jq >> $GITHUB_STEP_SUMMARY
+            exit 13
+          fi
+
+  attest-approval:
+    name: Attest approval
+    needs: [check-approved-release]
+    if: needs.check-approved-release.outputs.new-approved-sw == 'true'
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_ID: ${{ needs.check-approved-release.outputs.release-id }}
+      RELEASE_NAME: ${{ needs.check-approved-release.outputs.release-name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Kosli cli
+        uses: kosli-dev/setup-cli-action@v2
+        with:
+          version:
+            ${{ vars.KOSLI_CLI_VERSION }}
+
+      - name: Report approval to release flow
+        run: |
+          source scripts/lib-jira.sh
+
+          get_release ${{ env.RELEASE_ID }} > /tmp/jira-release.json
+          add_approver_name_and_email /tmp/jira-release.json
+          APPROVER_NAME=$(jq -r '.approvers[].displayName' /tmp/jira-release.json)
+          
+          PROJECT_KEY=$(echo "${{ vars.JIRA_PROJECT_KEY }}" | cut -d',' -f1)
+          REL_LINK="${JIRA_BASE_URL}/projects/${PROJECT_KEY}/versions/${{ env.RELEASE_ID }}"
+          
+          kosli attest custom \
+            --type=approval-jira \
+            --name release-approval \
+            --flow ${{ env.KOSLI_FLOW_RELEASE }} \
+            --trail ${{ env.RELEASE_NAME }} \
+            --attestation-data /tmp/jira-release.json \
+            --annotate Approver="${APPROVER_NAME}" \
+            --annotate JiraRelease=${REL_LINK}
+
+      # - name: Attest approval of SW
+
+  deploy-to-prod:
+    name: Deploy to prod
+    needs: [check-approved-release, attest-approval]
+    if: needs.check-approved-release.outputs.new-approved-sw == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Kosli cli
+        uses: kosli-dev/setup-cli-action@v2
+        with:
+          version:
+            ${{ vars.KOSLI_CLI_VERSION }}
+
+      # Get SW running in prod.
+      # Get SW to deploy.
+      # Deploy SW.
+
+  set-to-released:
+    name: Set to released in Jira
+    needs: [check-approved-release, attest-approval, deploy-to-prod]
+    if: needs.check-approved-release.outputs.new-approved-sw == 'true'
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_ID: ${{ needs.check-approved-release.outputs.release-id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set to released
+        run: |
+          source scripts/lib-jira.sh
+          set_release_to_released ${RELEASE_ID}
