@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/flexible-key-value.schema.json",
+  "title": "Flexible Key-Value Object",
+  "description": "An object with arbitrary string keys and string values",
+  "type": "object",
+  "patternProperties": {
+    ".*": true
+  },
+  "additionalProperties": false
+}
