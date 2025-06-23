@@ -126,7 +126,10 @@ jobs:
           while read -r flow_name trail_name artifact_name; do
             get_trails_newer_then ${flow_name} ${trail_name} > /tmp/${artifact_name}.json
 
-            NEXT_VERSION=$(jq -r 'if length > 0 then .[0].name else null end' /tmp/${artifact_name}.json)
+            NEXT_VERSION=$(jq -r '.[0].name' /tmp/${artifact_name}.json)
+            if [ "$NEXT_VERSION" == "null" ]; then
+              NEXT_VERSION="$trail_name"
+            fi
 
             # Create JSON object with both current and next versions
             jq -n \
