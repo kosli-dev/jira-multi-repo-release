@@ -100,3 +100,30 @@ jobs:
             --attestation-data /tmp/prod-sw.json
           echo "Current prod SW:" >> $GITHUB_STEP_SUMMARY
           cat /tmp/prod-sw.json | jq >> $GITHUB_STEP_SUMMARY
+
+      - name: Report jira issues
+        shell: bash
+        run: |
+          echo "STEP: Report jira issues"
+          source .github/actions/common/lib-kosli.sh
+          get_list_of_artifacts_with_release_flow_info /tmp/prod-env.json >  /tmp/prod-release-sw-versions.json
+
+          # Loop over all artifacts, find the all the trails that are newer then what is running now,
+          # get all the jira issues from those trails.
+          ALL_ISSUES_FILE="/tmp/all_issues.txt"
+          > ${ALL_ISSUES_FILE}
+          jq -r '.[] | "\(.flow_name) \(.trail_name) \(.name)"' /tmp/prod-release-sw-versions.json | \
+          while read -r flow_name trail_name artifact_name; do
+              get_issue_keys_in_trails_newer_then ${flow_name} ${trail_name} > ${ALL_ISSUES_FILE}
+          done
+          
+          ISSUES=$(sort -uV ${ALL_ISSUES_FILE} | tr '\n' ' ')
+          echo ${ISSUES} | jq -R 'split(" ")' > /tmp/jira-issues.json
+  
+          kosli attest custom \
+              --type=jira-issues-list \
+              --name jira-issues \
+              --attestation-data /tmp/jira-issues.json \
+              --annotate "JiraIssues=${ISSUES}"
+          
+          echo "Jira issues: ${ISSUES}" >> $GITHUB_STEP_SUMMARY
