@@ -136,7 +136,7 @@ jobs:
               --attestation-data /tmp/jira-issues.json \
               --annotate "JiraIssues=${ISSUES}"
           
-          echo "Attested Jira issues to kosli release ${{ env.RELEASE_NAME }}: ${ISSUES}" >> $GITHUB_STEP_SUMMARY
+          echo "Attested Jira issues to kosli release ${{ env.RELEASE_NAME }}: **${ISSUES}**" >> $GITHUB_STEP_SUMMARY
 
       - name: Add Jira issues to release
         shell: bash
