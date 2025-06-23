@@ -6,8 +6,6 @@ name: Report prod snapshot
 # we just simulate that we have deployed to prod
 
 on:
-  schedule:
-    - cron: '55 * * * *'  # Runs 5 minutes before the start of every hour
   workflow_dispatch:
 
 env:
