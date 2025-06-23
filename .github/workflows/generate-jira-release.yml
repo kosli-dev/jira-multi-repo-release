@@ -141,10 +141,10 @@ jobs:
           done < <(jq -r '.[] | "\(.flow_name) \(.trail_name) \(.template_reference_name)"' /tmp/prod-release-sw-versions.json)
 
           ISSUES=$(sort -uV "${ALL_ISSUES_FILE}" | tr '\n' ' ' | sed 's/ *$//')
-          echo "${ISSUES}" | jq -R 'if length == 0 or test("^\\s*$") then [] else split(" ") end' > /tmp/jira-issues.json
+          echo ${ISSUES} | jq -R 'split(" ")' > /tmp/jira-issues.json
           echo "JIRA_KEYS_IN_KOSLI_RELEASES=${ISSUES}" >> $GITHUB_ENV
 
-          kosli attest custom \
+            kosli attest custom \
               --type=jira-issues-list \
               --name jira-issues \
               --trail ${{ env.RELEASE_NAME }} \
@@ -153,6 +153,7 @@ jobs:
           
           echo "Attested Jira issues to kosli release ${{ env.RELEASE_NAME }}: **${ISSUES}**" >> $GITHUB_STEP_SUMMARY
 
+          set -x
           jq -s 'add' ${NEXT_SW_VERSION_FILE} > /tmp/sw-update-plan.json 
 
           kosli attest custom \
