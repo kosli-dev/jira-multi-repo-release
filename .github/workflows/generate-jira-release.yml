@@ -108,7 +108,7 @@ jobs:
           echo "Current prod SW:" >> $GITHUB_STEP_SUMMARY
           cat /tmp/prod-sw.json | jq >> $GITHUB_STEP_SUMMARY
 
-      - name: Report jira issues
+      - name: Report jira issues to kosli trail
         shell: bash
         run: |
           echo "STEP: Report jira issues"
@@ -127,7 +127,8 @@ jobs:
           
           ISSUES=$(sort -uV ${ALL_ISSUES_FILE} | tr '\n' ' ')
           echo ${ISSUES} | jq -R 'split(" ")' > /tmp/jira-issues.json
-  
+          echo "JIRA_KEYS_IN_KOSLI_RELEASES=${ISSUES}" >> $GITHUB_ENV
+
           kosli attest custom \
               --type=jira-issues-list \
               --name jira-issues \
@@ -135,4 +136,30 @@ jobs:
               --attestation-data /tmp/jira-issues.json \
               --annotate "JiraIssues=${ISSUES}"
           
-          echo "Jira issues: ${ISSUES}" >> $GITHUB_STEP_SUMMARY
+          echo "Jira issues: **${ISSUES}**" >> $GITHUB_STEP_SUMMARY
+
+      - name: Add Jira issues to release
+        shell: bash
+        env:
+          KOSLI_ORG: ${{ inputs.kosli-org }}
+          KOSLI_FLOW: ${{ inputs.kosli-flow }}
+          KOSLI_API_TOKEN: ${{ inputs.kosli-api-token }}
+          JIRA_BASE_URL: ${{ inputs.jira-base-url }}
+          JIRA_USERNAME: ${{ inputs.jira-username }}
+          JIRA_API_TOKEN: ${{ inputs.jira-api-token }}
+        run: |
+          echo "STEP: Add Jira issues to release"
+          source .github/actions/common/lib-jira.sh
+          source .github/actions/common/lib-kosli.sh
+
+          JIRA_KEYS_IN_REL=($(get_issue_keys_in_release ${{ env.RELEASE_ID }}))
+          JIRA_KEYS_IN_KOSLI=(${{ env.JIRA_KEYS_IN_KOSLI_RELEASES }})
+
+          # Add all new jira issues between prod and staging
+          echo "Adding Jira issues:"  >> $GITHUB_STEP_SUMMARY
+          for JIRA_KEY in ${JIRA_KEYS_IN_KOSLI[@]}; do
+            if [[ ! " ${JIRA_KEYS_IN_REL[@]} " =~ " ${JIRA_KEY} " ]]; then
+              add_issue_to_release ${JIRA_KEY} ${{ env.RELEASE_NAME }}
+              echo ${JIRA_KEY} >> $GITHUB_STEP_SUMMARY
+            fi
+          done
