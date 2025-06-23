@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       release-name:
-        description: 'Name of release'
+        description: 'Name of release (default to current yyyy-mm-dd if no release already exists)'
         required: false
         default: ''
 
