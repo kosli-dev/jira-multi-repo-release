@@ -68,7 +68,7 @@ jobs:
             echo "Release candidate exist"
             RELEASE_ID=$(echo "${REL_VALUES_JSON}" |  jq -r '.[0].id')
             RELEASE_NAME=$(echo "${REL_VALUES_JSON}" |  jq -r '.[0].name')
-            echo "Updated Jira release_name: **${RELEASE_NAME}"** >> $GITHUB_STEP_SUMMARY
+            echo "Updated Jira release_name: **${RELEASE_NAME}**" >> $GITHUB_STEP_SUMMARY
             echo "release_id: **${RELEASE_ID}**" >> $GITHUB_STEP_SUMMARY
           fi
           echo "RELEASE_ID=${RELEASE_ID}" >> $GITHUB_ENV
@@ -108,7 +108,7 @@ jobs:
           echo "Current prod SW:" >> $GITHUB_STEP_SUMMARY
           cat /tmp/prod-sw.json | jq >> $GITHUB_STEP_SUMMARY
 
-      - name: Report jira issues
+      - name: Report jira issues to kosli trail
         shell: bash
         run: |
           echo "STEP: Report jira issues"
@@ -125,9 +125,10 @@ jobs:
               get_issue_keys_in_trails_newer_then ${flow_name} ${trail_name} > ${ALL_ISSUES_FILE}
           done
           
-          ISSUES=$(sort -uV ${ALL_ISSUES_FILE} | tr '\n' ' ')
+          ISSUES=$(sort -uV "${ALL_ISSUES_FILE}" | tr '\n' ' ' | sed 's/ *$//')
           echo ${ISSUES} | jq -R 'split(" ")' > /tmp/jira-issues.json
-  
+          echo "JIRA_KEYS_IN_KOSLI_RELEASES=${ISSUES}" >> $GITHUB_ENV
+
           kosli attest custom \
               --type=jira-issues-list \
               --name jira-issues \
@@ -135,4 +136,23 @@ jobs:
               --attestation-data /tmp/jira-issues.json \
               --annotate "JiraIssues=${ISSUES}"
           
-          echo "Jira issues: ${ISSUES}" >> $GITHUB_STEP_SUMMARY
+          echo "Attested Jira issues to kosli release ${{ env.RELEASE_NAME }}: **${ISSUES}**" >> $GITHUB_STEP_SUMMARY
+
+      - name: Add Jira issues to release
+        shell: bash
+        run: |
+          echo "STEP: Add Jira issues to release"
+          source .github/actions/common/lib-jira.sh
+          source .github/actions/common/lib-kosli.sh
+
+          JIRA_KEYS_IN_REL=($(get_issue_keys_in_release ${{ env.RELEASE_ID }}))
+          JIRA_KEYS_IN_KOSLI=(${{ env.JIRA_KEYS_IN_KOSLI_RELEASES }})
+
+          # Add all new jira issues between prod and staging
+          echo "Added Jira issues to Jira release ${{ env.RELEASE_NAME }}:"  >> $GITHUB_STEP_SUMMARY
+          for JIRA_KEY in ${JIRA_KEYS_IN_KOSLI[@]}; do
+            if [[ ! " ${JIRA_KEYS_IN_REL[@]} " =~ " ${JIRA_KEY} " ]]; then
+              add_issue_to_release ${JIRA_KEY} ${{ env.RELEASE_ID }}
+              echo ${JIRA_KEY} >> $GITHUB_STEP_SUMMARY
+            fi
+          done
