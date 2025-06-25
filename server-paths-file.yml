@@ -4,5 +4,5 @@ artifacts:
     path: running/backend
   frontend:
     path: running/frontend
-#  some-unknown-sw:
-#    path: bin
+  some-unknown-sw:
+    path: custom-attestation-types
