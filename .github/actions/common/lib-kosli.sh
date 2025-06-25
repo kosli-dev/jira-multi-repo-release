@@ -142,7 +142,7 @@ function get_list_of_artifacts_with_release_flow_info
 
     jq -c '[
         .[] as $artifact |
-        ($artifact.flows | map(select(.trail_name != null and (.trail_name | startswith("v[0-9]")))) | first) as $release_flow |
+        ($artifact.flows | map(select(.trail_name != null and (.trail_name | test("^v\\d+\\.\\d+\\.\\d+")))) | first) as $release_flow |
         if $release_flow then
             {
                 name: $artifact.name,
