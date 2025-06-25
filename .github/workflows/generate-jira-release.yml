@@ -111,11 +111,14 @@ jobs:
       - name: Collect jira issues and software update plan
         shell: bash
         run: |
-          set -x
           echo "STEP: Collect jira issues and software update plan"
           source .github/actions/common/lib-kosli.sh
           [ -f /tmp/prod-env.json ] || get_current_running_env_json "${KOSLI_ENV_PROD}" > /tmp/prod-env.json
           get_list_of_artifacts_with_release_flow_info /tmp/prod-env.json >  /tmp/prod-release-sw-versions.json
+          
+          echo AAAA
+          cat  /tmp/prod-release-sw-versions.json
+          echo BBBB
       
           # Loop over all artifacts, find the all the trails that are newer then what is running now
           ALL_ISSUES_FILE="/tmp/all_issues.txt"
