@@ -2,7 +2,7 @@ name: 'Get Previous Release Tag'
 description: 'Gets the previous release tag given the current release tag'
 inputs:
   current-tag:
-    description: 'Current release tag (e.g., release-1.2.3)'
+    description: 'Current release tag (e.g., v1.2.3)'
     required: true
   github-token:
     description: 'GitHub token for API access'
@@ -31,7 +31,7 @@ runs:
         
         # Get all release tags, sort them, and find the previous one
         ALL_TAGS=$(gh api repos/${{ github.repository }}/tags \
-          --jq '[.[] | select(.name | test("^release-[0-9]+\\.[0-9]+\\.[0-9]+$"))] | .[].name' \
+          --jq '[.[] | select(.name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))] | .[].name' \
           | sort -V)
         
         echo "All release tags:"
