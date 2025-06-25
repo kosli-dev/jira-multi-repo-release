@@ -92,11 +92,13 @@ jobs:
           get_release ${{ env.RELEASE_ID }} > /tmp/jira-release.json
           add_approver_name_and_email /tmp/jira-release.json
           APPROVER_NAME=$(jq -r '.approvers[].displayName' /tmp/jira-release.json)
-          echo "APPROVER_NAME=$APPROVER_NAME" >> $GITHUB_ENV
-          
+          echo "APPROVER_NAME=${APPROVER_NAME}" >> $GITHUB_ENV
+          echo "APPROVED by: ${APPROVER_NAME}" >> $GITHUB_STEP_SUMMARY
+                    
           PROJECT_KEY=$(echo "${{ vars.JIRA_PROJECT_KEY }}" | cut -d',' -f1)
           REL_LINK="${JIRA_BASE_URL}/projects/${PROJECT_KEY}/versions/${{ env.RELEASE_ID }}"
-          echo "REL_LINK=REL_LINK" >> $GITHUB_ENV
+          echo "REL_LINK=${REL_LINK}" >> $GITHUB_ENV
+          echo "Release link: ${REL_LINK}" >> $GITHUB_STEP_SUMMARY
 
           kosli attest custom \
             --type=approval-jira \
@@ -116,7 +118,9 @@ jobs:
           while IFS=' ' read -r template_reference_name next_sw release_flow; do
             # get fingerprint of artifact from trail
             FINGERPRINT=$(get_artifact_fingerprint_from_trail ${release_flow} ${next_sw} ${template_reference_name})
-          
+            echo "Approve release for artifact:  ${template_reference_name} " >> $GITHUB_STEP_SUMMARY
+            echo "${release_flow}/${next_sw}/${FINGERPRINT} >> $GITHUB_STEP_SUMMARY
+
             kosli attest custom \
               --type=approval-jira \
               --name ${template_reference_name}.release-approval \
