@@ -117,8 +117,6 @@ jobs:
           get_list_of_artifacts_with_release_flow_info /tmp/prod-env.json >  /tmp/prod-release-sw-versions.json
           
           echo AAAA
-          cat /tmp/prod-env.json
-          echo BBBB
           cat  /tmp/prod-release-sw-versions.json
           echo CCCC
       
