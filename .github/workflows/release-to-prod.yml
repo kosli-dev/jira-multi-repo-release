@@ -115,11 +115,12 @@ jobs:
           get_attestation_from_trail ${KOSLI_FLOW_RELEASE} ${RELEASE_NAME} "sw-update-plan" \
             | jq '.[0].attestation_data' > /tmp/sw-update-plan.json
           
+          echo "Approve artifacts:" >> $GITHUB_STEP_SUMMARY
+
           while IFS=' ' read -r template_reference_name next_sw release_flow; do
             # get fingerprint of artifact from trail
             FINGERPRINT=$(get_artifact_fingerprint_from_trail ${release_flow} ${next_sw} ${template_reference_name})
-            echo "Approve release for artifact:  ${template_reference_name}" >> $GITHUB_STEP_SUMMARY
-            echo "${release_flow}/${next_sw}/${FINGERPRINT}" >> $GITHUB_STEP_SUMMARY
+            echo "${template_reference_name} ${release_flow}/${next_sw}/${FINGERPRINT}" >> $GITHUB_STEP_SUMMARY
 
             kosli attest custom \
               --type=approval-jira \
