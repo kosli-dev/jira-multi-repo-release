@@ -119,6 +119,12 @@ function get_issue_keys_between_commits
 
 function get_trails_newer_then
 {
+    # Return empty array if flowName or trailName is missing
+    if [[ $# -lt 2 ]]; then
+        echo "[]"
+        return
+    fi
+
     local -r flowName=$1; shift
     local -r trailName=$1; shift
 
