@@ -57,7 +57,7 @@ jobs:
               RELEASE_NAME=$(date -u "+%Y-%m-%d")
             fi
             CREATE_RESULT_JSON=$(create_release ${JIRA_PROJECT_ID} ${RELEASE_NAME})
-            RELEASE_ID=$(echo "${CREATE_RESULT_JSON}" | jq .id)
+            RELEASE_ID=$(echo "${CREATE_RESULT_JSON}" | jq -r '.id')
           
             PROJECT_KEY=$(echo "${JIRA_PROJECT_ID}" | cut -d',' -f1)
             REL_LINK="${JIRA_BASE_URL}/projects/${PROJECT_KEY}/versions/${RELEASE_ID}"
