@@ -137,12 +137,12 @@ function get_trails_newer_then
 function get_list_of_artifacts_with_release_flow_info
 {
     # Based on a kosli environment snapshot extract out the
-    # artifacts and the trail that starts with 'release-'
+    # artifacts, flow and trail based on trail with a name of format v.0.0.0
     local envJsonFile=$1; shift
 
     jq -c '[
         .[] as $artifact |
-        ($artifact.flows | map(select(.trail_name != null and (.trail_name | startswith("release-")))) | first) as $release_flow |
+        ($artifact.flows | map(select(.trail_name != null and (.trail_name | test("^v\\d+\\.\\d+\\.\\d+")))) | first) as $release_flow |
         if $release_flow then
             {
                 name: $artifact.name,
