@@ -123,7 +123,12 @@ jobs:
           > ${SW_UPDATE_PLAN_FILE}
       
           # Create JSON objects for each artifact instead of simple key=value
-          while read -r flow_name trail_name artifact_name; do
+          while read -r artifact_env_name flow_name trail_name artifact_name; do
+            # Use artifact_env_name if artifact_name is empty
+            if [[ -z "$artifact_name" ]]; then
+              artifact_name="$artifact_env_name"
+            fi
+
             get_trails_newer_then ${flow_name} ${trail_name} > /tmp/${artifact_name}.json
       
             NEXT_VERSION=$(jq -r '.[0].name' /tmp/${artifact_name}.json)
@@ -143,7 +148,7 @@ jobs:
              for trail in $(jq -r '.[].name' /tmp/${artifact_name}.json); do
                get_attestation_from_trail ${flow_name} ${trail} "jira-issues" | jq -r '.[].attestation_data[]?' >> ${ALL_ISSUES_FILE}
              done
-          done < <(jq -r '.[] | "\(.flow_name) \(.trail_name) \(.template_reference_name)"' /tmp/prod-release-sw-versions.json)
+          done < <(jq -r '.[] | "\(.name) \(.flow_name) \(.trail_name) \(.template_reference_name)"' /tmp/prod-release-sw-versions.json)
       
           ISSUES=$(sort -uV "${ALL_ISSUES_FILE}" | tr '\n' ' ' | sed 's/ *$//')
           echo ${ISSUES} | jq -R 'split(" ")' > /tmp/jira-issues.json
