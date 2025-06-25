@@ -111,6 +111,7 @@ jobs:
       - name: Collect jira issues and software update plan
         shell: bash
         run: |
+          set -x
           echo "STEP: Collect jira issues and software update plan"
           source .github/actions/common/lib-kosli.sh
           [ -f /tmp/prod-env.json ] || get_current_running_env_json "${KOSLI_ENV_PROD}" > /tmp/prod-env.json
