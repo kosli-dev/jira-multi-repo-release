@@ -136,15 +136,24 @@ function get_list_of_artifacts_with_release_flow_info
 
     jq -c '[
         .[] as $artifact |
-        $artifact.flows[] |
-        select(.trail_name | startswith("release-")) |
-        {
-            name: $artifact.name,
-            trail_name: .trail_name,
-            flow_name: .flow_name,
-            template_reference_name: .template_reference_name,
-            fingerprint: $artifact.fingerprint
-        }
+        ($artifact.flows | map(select(.trail_name != null and (.trail_name | startswith("release-")))) | first) as $release_flow |
+        if $release_flow then
+            {
+                name: $artifact.name,
+                trail_name: $release_flow.trail_name,
+                flow_name: ($release_flow.flow_name // ""),
+                template_reference_name: ($release_flow.template_reference_name // ""),
+                fingerprint: $artifact.fingerprint
+            }
+        else
+            {
+                name: $artifact.name,
+                trail_name: "",
+                flow_name: "",
+                template_reference_name: "",
+                fingerprint: $artifact.fingerprint
+            }
+        end
     ]' ${envJsonFile}
 }
 
