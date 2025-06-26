@@ -207,6 +207,8 @@ jobs:
           ' /tmp/sw-update-plan.json)
           
           set_release_description ${{ env.RELEASE_ID }} "${DESCRIPTION}"
+          echo "SW that change in release ${{ env.RELEASE_NAME }}:" >> $GITHUB_STEP_SUMMARY
+          echo -e "${DESCRIPTION}" >> $GITHUB_STEP_SUMMARY
 
       - name: Add Jira issues to release
         shell: bash
