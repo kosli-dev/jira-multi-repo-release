@@ -186,6 +186,30 @@ jobs:
           echo "Attested Next SW kosli release ${{ env.RELEASE_NAME }}:" >> $GITHUB_STEP_SUMMARY
           cat /tmp/sw-update-plan.json >> $GITHUB_STEP_SUMMARY      
 
+      - name: Set update plan in Jira
+        shell: bash
+        run: |
+          echo "STEP: Set update plan in Jira"
+          source .github/actions/common/lib-jira.sh
+
+          # Loop through the update plan and extract the entries that is
+          # actually changing. Add them as description to the releaase.
+          # The reason for putting it in description is that there is no where
+          # else to put it using the API
+          DESCRIPTION=$(jq -r '
+            [to_entries[] |
+              select(
+                .value["current-sw"] != "" and
+                .value["current-sw"] != .value["next-sw"]
+              ) |
+              "\(.key): \(.value["current-sw"]) -> \(.value["next-sw"])"
+            ] | join("\\n")
+          ' /tmp/sw-update-plan.json)
+          
+          set_release_description ${{ env.RELEASE_ID }} "${DESCRIPTION}"
+          echo "SW that change in release ${{ env.RELEASE_NAME }}:" >> $GITHUB_STEP_SUMMARY
+          echo -e "${DESCRIPTION}" >> $GITHUB_STEP_SUMMARY
+
       - name: Add Jira issues to release
         shell: bash
         run: |
