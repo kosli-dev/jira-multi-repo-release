@@ -109,6 +109,19 @@ function get_release
     loud_curl_jira GET "${url}" {}
 }
 
+function set_release_description
+{
+    local -r releaseId=$1; shift
+    local -r description=$1; shift
+
+    local -r url="${JIRA_BASE_URL}/rest/api/3/version/${releaseId}"
+    local -r data='{
+         "description": "'${description}'"
+    }'
+    debug_log "Set release ${releaseId} to released:\n${data}"
+    loud_curl_jira PUT "${url}" "${data}"
+}
+
 function fetch_user_details
 {
     local -r accountId=$1; shift
