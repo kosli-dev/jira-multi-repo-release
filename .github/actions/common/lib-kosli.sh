@@ -134,7 +134,7 @@ function get_trails_newer_then
          if $index then $trails[:$index] else $trails end'
 }
 
-function get_list_of_artifacts_with_release_flow_info
+function get_list_of_artifacts_with_tagged_version_flow_info
 {
     # Based on a kosli environment snapshot extract out the
     # artifacts, flow and trail based on trail with a name of format v.0.0.0
@@ -142,13 +142,13 @@ function get_list_of_artifacts_with_release_flow_info
 
     jq -c '[
         .[] as $artifact |
-        ($artifact.flows | map(select(.trail_name != null and (.trail_name | test("^v\\d+\\.\\d+\\.\\d+")))) | first) as $release_flow |
-        if $release_flow then
+        ($artifact.flows | map(select(.trail_name != null and (.trail_name | test("^v\\d+\\.\\d+\\.\\d+")))) | first) as $tagged_version_flow |
+        if $tagged_version_flow then
             {
                 name: $artifact.name,
-                trail_name: $release_flow.trail_name,
-                flow_name: ($release_flow.flow_name // ""),
-                template_reference_name: ($release_flow.template_reference_name // ""),
+                trail_name: $tagged_version_flow.trail_name,
+                flow_name: ($tagged_version_flow.flow_name // ""),
+                template_reference_name: ($tagged_version_flow.template_reference_name // ""),
                 fingerprint: $artifact.fingerprint
             }
         else

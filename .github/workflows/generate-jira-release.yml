@@ -114,7 +114,7 @@ jobs:
           echo "STEP: Collect jira issues and software update plan"
           source .github/actions/common/lib-kosli.sh
           [ -f /tmp/prod-env.json ] || get_current_running_env_json "${KOSLI_ENV_PROD}" > /tmp/prod-env.json
-          get_list_of_artifacts_with_release_flow_info /tmp/prod-env.json >  /tmp/prod-release-sw-versions.json
+          get_list_of_artifacts_with_tagged_version_flow_info /tmp/prod-env.json >  /tmp/prod-release-sw-versions.json
       
           # Loop over all artifacts, find the all the trails that are newer then what is running now
           ALL_ISSUES_FILE="/tmp/all_issues.txt"
@@ -142,7 +142,7 @@ jobs:
               --arg current "$trail_name" \
               --arg next "$NEXT_VERSION" \
               --arg flow "$flow_name" \
-              '{($artifact): {"current-sw": $current, "next-sw": $next, "release-flow": $flow}}' >> ${SW_UPDATE_PLAN_FILE}
+              '{($artifact): {"current-sw": $current, "next-sw": $next, "tagged-version-flow": $flow}}' >> ${SW_UPDATE_PLAN_FILE}
       
              # Loop over the trails to get a list of Jira issues
              for trail in $(jq -r '.[].name' /tmp/${artifact_name}.json); do
@@ -196,7 +196,7 @@ jobs:
           # actually changing. Add them as description to the releaase.
           # The reason for putting it in description is that there is no where
           # else to put it using the API
-          DESCRIPTION=$(jq -r '
+          DESCRIPTION='Update plan:\n'$(jq -r '
             [to_entries[] |
               select(
                 .value["current-sw"] != "" and
