@@ -196,7 +196,7 @@ jobs:
           # actually changing. Add them as description to the releaase.
           # The reason for putting it in description is that there is no where
           # else to put it using the API
-          DESCRIPTION='Update plan:\n'$(jq -r '
+          DESCRIPTION=$(jq -r '
             [to_entries[] |
               select(
                 .value["current-sw"] != "" and
