@@ -64,6 +64,9 @@ jobs:
               --jq '.content' | base64 -d > running/${REPO_FILE}
 
             echo "File downloaded successfully to running/${REPO_FILE}"
+
+            # Add tag to directory structure
+            echo "refs/tags/${LATEST_TAG}" > running/$(dirname "${REPO_FILE}")/github-ref.txt
           done
 
           kosli snapshot paths ${{ env.KOSLI_ENV }} \
