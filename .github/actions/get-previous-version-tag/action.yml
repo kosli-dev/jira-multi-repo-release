@@ -1,8 +1,8 @@
-name: 'Get Previous Release Tag'
-description: 'Gets the previous release tag given the current release tag'
+name: 'Get Previous version tag'
+description: 'Gets the previous version tag given the current version tag'
 inputs:
   current-tag:
-    description: 'Current release tag (e.g., v1.2.3)'
+    description: 'Current version tag (e.g., v1.2.3)'
     required: true
   github-token:
     description: 'GitHub token for API access'
@@ -10,7 +10,7 @@ inputs:
     default: ${{ github.token }}
 outputs:
   previous-tag:
-    description: 'Previous release tag (empty if none found)'
+    description: 'Previous version tag (empty if none found)'
     value: ${{ steps.get-previous.outputs.previous-tag }}
   has-previous:
     description: 'Boolean indicating if a previous tag was found'
@@ -19,7 +19,7 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    - name: Get previous release tag
+    - name: Get previous version tag
       id: get-previous
       shell: bash
       env:
@@ -29,19 +29,19 @@ runs:
         echo "Current tag: $CURRENT_TAG"
         echo "Repository: ${{ github.repository }}"
         
-        # Get all release tags, sort them, and find the previous one
+        # Get all version tags, sort them, and find the previous one
         ALL_TAGS=$(gh api repos/${{ github.repository }}/tags \
           --jq '[.[] | select(.name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))] | .[].name' \
           | sort -V)
         
-        echo "All release tags:"
+        echo "All version tags:"
         echo "$ALL_TAGS"
         
         # Find previous tag
         PREVIOUS_TAG=$(echo "$ALL_TAGS" | grep -B1 "^${CURRENT_TAG}$" | head -n1)
         
         if [ "$PREVIOUS_TAG" = "$CURRENT_TAG" ] || [ -z "$PREVIOUS_TAG" ]; then
-          echo "No previous release tag found"
+          echo "No previous version tag found"
           echo "previous-tag=" >> $GITHUB_OUTPUT
           echo "has-previous=false" >> $GITHUB_OUTPUT
         else

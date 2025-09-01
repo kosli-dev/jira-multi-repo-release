@@ -16,9 +16,9 @@
           "type": "string",
           "description": "The next software version"
         },
-        "release-flow": {
+        "tagged-version-flow": {
           "type": "string",
-          "description": "The Kosli release flow this artifact comes from"
+          "description": "The Kosli tagged version flow this artifact comes from"
         }
       },
       "required": ["current-sw", "next-sw"],

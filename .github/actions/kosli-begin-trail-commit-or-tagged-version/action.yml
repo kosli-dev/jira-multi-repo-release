@@ -1,21 +1,21 @@
 name: 'Begin Kosli Trail'
 description:
-  'Checks if this is a release tag or main branch.
-  For release tag it creates a trail with the tag name in the kosli-release-flow.
+  'Checks if this is a version tag or main branch.
+  For version tag it creates a trail with the tag name in the kosli-tagged-version-flow.
   For main branch it creates a trail with the commit-tag in the kosli-commit-flow.
   For other branches it does nothing.'
 inputs:
-  kosli-release-flow:
-    description: 'Kosli flow to use if this is a release'
+  kosli-tagged-version-flow:
+    description: 'Kosli flow to use if this is a tagged version'
     required: true
-  kosli-release-template:
-    description: 'Kosli template to use if this is a release'
+  kosli-tagged-version-template:
+    description: 'Kosli template to use if this is a tagged version'
     required: true
   kosli-commit-flow:
-    description: 'Kosli flow to use if this is not a release'
+    description: 'Kosli flow to use if this is not a tagged version'
     required: true
   kosli-commit-template:
-    description: 'Kosli template to use if this is not a release'
+    description: 'Kosli template to use if this is not a tagged version'
     required: true
 
 outputs:
@@ -34,9 +34,9 @@ runs:
       shell: bash
       run: |
         if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-          echo "kosli-flow=${{ inputs.kosli-release-flow }}" >> $GITHUB_OUTPUT
+          echo "kosli-flow=${{ inputs.kosli-tagged-version-flow }}" >> $GITHUB_OUTPUT
           echo "kosli-trail=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          echo "TEMPLATE_FILE=${{ inputs.kosli-release-template }}" >> $GITHUB_ENV
+          echo "TEMPLATE_FILE=${{ inputs.kosli-tagged-version-template }}" >> $GITHUB_ENV
         else
           echo "kosli-flow=${{ inputs.kosli-commit-flow }}" >> $GITHUB_OUTPUT
           echo "kosli-trail=${GITHUB_SHA}" >> $GITHUB_OUTPUT
