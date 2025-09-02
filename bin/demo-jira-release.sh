@@ -64,8 +64,6 @@ function run_gh_workflow
 main()
 {
     check_arguments "$@"
-    echo "*** Report all running environments"
-    run_gh_workflow simulate-environment-reporting-prod.yml > /dev/null
 
     echo; echo "*** Make a release candidate"
     run_gh_workflow generate-jira-release.yml
