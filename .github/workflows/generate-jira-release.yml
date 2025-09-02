@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       release-name:
-        description: 'Name of release (default to current yyyy-mm-dd if no release already exists)'
+        description: 'Name of release (default to current yyyy-mm-dd-hh-mm-ss if no release already exists)'
         required: false
         default: ''
 
@@ -54,7 +54,7 @@ jobs:
           
             RELEASE_NAME="${{ github.event.inputs.release-name }}"
             if [ -z "$RELEASE_NAME" ]; then
-              RELEASE_NAME=$(date -u "+%Y-%m-%d")
+              RELEASE_NAME=$(date -u  "+%Y-%m-%d-%H-%M-%S")
             fi
             CREATE_RESULT_JSON=$(create_release ${JIRA_PROJECT_ID} ${RELEASE_NAME})
             RELEASE_ID=$(echo "${CREATE_RESULT_JSON}" | jq -r '.id')
